@@ -22,7 +22,7 @@ const NODE_REL_SIZE = 4
 
 // Must match nodeRelSize so collision geometry is consistent
 function nodeVal(hop: number, exposure: number): number {
-  return hop === 0 ? 28 : Math.max(3, Math.abs(exposure) * 650)
+  return hop === 0 ? 28 : Math.max(3, Math.min(60, Math.abs(exposure) * 650))
 }
 function nodeRadius(hop: number, exposure: number): number {
   return Math.sqrt(nodeVal(hop, exposure)) * NODE_REL_SIZE
