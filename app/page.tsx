@@ -38,14 +38,19 @@ export default function Home() {
         body: JSON.stringify({ shock_company: company.trim(), shock_pct: shockPct / 100 }),
       })
 
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error ?? `Request failed (${res.status})`)
+      let data: Record<string, unknown>
+      try {
+        data = await res.json()
+      } catch {
+        throw new Error(`Server error (${res.status})`)
       }
 
-      setResults(data)
-      setNarrative(data.narrative ?? null)
+      if (!res.ok) {
+        throw new Error((data.error as string) ?? `Request failed (${res.status})`)
+      }
+
+      setResults(data as unknown as Results)
+      setNarrative((data.narrative as string) ?? null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
