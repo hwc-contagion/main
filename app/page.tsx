@@ -1,65 +1,115 @@
-import Image from "next/image";
+'use client'
+
+import { useState } from 'react'
+import ResultsTable from './components/ResultsTable'
+import NarrativeBox from './components/NarrativeBox'
+
+const FAKE_RESULTS = {
+  shock_company: 'Apple',
+  shock_pct: -0.30,
+  affected: [
+    { company: 'TSMC', exposure: -0.075, hop: 1 },
+    { company: 'Qualcomm', exposure: -0.060, hop: 1 },
+    { company: 'ASML', exposure: -0.015, hop: 2 },
+    { company: 'NVIDIA', exposure: -0.012, hop: 2 },
+    { company: 'BASF', exposure: -0.003, hop: 3 },
+  ],
+}
+
+const FAKE_NARRATIVE =
+  'A −30% earnings shock to Apple propagates through two critical chokepoints in the semiconductor supply chain. TSMC absorbs the largest direct exposure at −7.5%, reflecting Apple\'s outsized share of its leading-edge node capacity. Qualcomm follows at −6.0% due to its Apple-dependent modem revenue. At hop 2, ASML and NVIDIA face indirect drag as downstream orders soften. BASF\'s marginal −0.3% exposure at hop 3 suggests the shock largely dissipates before reaching chemical inputs. Risk is concentrated at hop 1 — interventions targeting TSMC hedging would have the highest systemic impact.'
+
+interface AffectedCompany {
+  company: string
+  exposure: number
+  hop: number
+}
+
+interface Results {
+  shock_company: string
+  shock_pct: number
+  affected: AffectedCompany[]
+}
 
 export default function Home() {
+  const [company, setCompany] = useState('')
+  const [shockPct, setShockPct] = useState(-30)
+  const [loading, setLoading] = useState(false)
+  const [results, setResults] = useState<Results | null>(null)
+  const [narrative, setNarrative] = useState<string | null>(null)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!company.trim()) return
+    setLoading(true)
+    // TODO Hour 3: replace with real API calls
+    setTimeout(() => {
+      setResults(FAKE_RESULTS)
+      setNarrative(FAKE_NARRATIVE)
+      setLoading(false)
+    }, 800)
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center p-8">
+      <div className="w-full max-w-2xl">
+        <h1 className="text-3xl font-bold mb-1 tracking-tight">
+          Earnings Contagion Risk
+        </h1>
+        <p className="text-zinc-400 mb-8 text-sm">
+          Model how an earnings shock ripples through the supply chain graph.
+        </p>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="company" className="text-sm font-medium text-zinc-300">
+              Company
+            </label>
+            <input
+              id="company"
+              type="text"
+              placeholder="e.g. Apple, Boeing, Tesla"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              className="bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="shock" className="text-sm font-medium text-zinc-300">
+              Earnings shock:{' '}
+              <span className={shockPct >= 0 ? 'text-green-400 font-semibold' : 'text-red-400 font-semibold'}>
+                {shockPct > 0 ? '+' : ''}{shockPct}%
+              </span>
+            </label>
+            <input
+              id="shock"
+              type="range"
+              min={-100}
+              max={100}
+              value={shockPct}
+              onChange={(e) => setShockPct(Number(e.target.value))}
+              className="accent-blue-500"
+            />
+            <div className="flex justify-between text-xs text-zinc-500">
+              <span>−100%</span>
+              <span>0%</span>
+              <span>+100%</span>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || !company.trim()}
+            className="bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors rounded-lg px-6 py-3 font-semibold text-sm"
           >
-            Documentation
-          </a>
-        </div>
-      </main>
+            {loading ? 'Analyzing…' : 'Run Analysis'}
+          </button>
+        </form>
+
+        {results && <ResultsTable affected={results.affected} />}
+        {narrative && <NarrativeBox narrative={narrative} />}
+      </div>
     </div>
-  );
+  )
 }
