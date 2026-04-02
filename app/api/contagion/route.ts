@@ -1,4 +1,5 @@
 import { runQuery } from "@/lib/neo4j";
+import OpenAI from "openai";
 
 function toNumber(val: unknown): number {
   if (typeof val === "number") return val;
@@ -55,7 +56,29 @@ export async function POST(request: Request) {
       exposure: toNumber(row.exposure),
     }));
 
-    return Response.json({ shock_company, shock_pct, affected, narrative: null });
+    let narrative: string | null = null;
+    try {
+      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a sharp financial risk analyst. Given contagion exposure data, go beyond summarizing — draw a conclusion in exactly 3-4 sentences. Identify which transmission pattern is most dangerous and why, flag any companies whose exposure seems disproportionate to their hop distance, and end with a concrete takeaway about systemic risk. Be specific with names and numbers. Do not just restate the data.",
+          },
+          {
+            role: "user",
+            content: JSON.stringify({ shock_company, shock_pct, affected }),
+          },
+        ],
+      });
+      narrative = completion.choices[0]?.message?.content ?? null;
+    } catch (err) {
+      console.error("OpenAI narrative failed:", err);
+    }
+
+    return Response.json({ shock_company, shock_pct, affected, narrative });
   } catch (err) {
     console.error("Unhandled error in POST /api/contagion:", err);
     return Response.json({ error: "Internal server error" }, { status: 500 });
