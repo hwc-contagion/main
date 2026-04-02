@@ -52,7 +52,13 @@ export async function POST(request: Request) {
     ORDER BY exposure DESC
   `;
 
-  const rows = await runQuery(query, { shock_company, shock_pct });
+  let rows: Record<string, unknown>[];
+  try {
+    rows = await runQuery(query, { shock_company, shock_pct });
+  } catch (err) {
+    console.error("Neo4j query failed:", err);
+    return Response.json({ error: "Graph query failed" }, { status: 500 });
+  }
 
   const affected = rows.map((row) => ({
     company: String(row.company),

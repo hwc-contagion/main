@@ -5,7 +5,6 @@ import ResultsTable from './components/ResultsTable'
 import NarrativeBox from './components/NarrativeBox'
 import ContagionGraph from './components/ContagionGraph'
 
-
 interface AffectedCompany {
   company: string
   exposure: number
@@ -24,20 +23,36 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<Results | null>(null)
   const [narrative, setNarrative] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!company.trim()) return
     setLoading(true)
+    setError(null)
+
     try {
       const res = await fetch('/api/contagion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shock_company: company, shock_pct: shockPct / 100 }),
+        body: JSON.stringify({ shock_company: company.trim(), shock_pct: shockPct / 100 }),
       })
-      const data = await res.json()
-      setResults(data)
-      setNarrative(data.narrative ?? null)
+
+      let data: Record<string, unknown>
+      try {
+        data = await res.json()
+      } catch {
+        throw new Error(`Server error (${res.status})`)
+      }
+
+      if (!res.ok) {
+        throw new Error((data.error as string) ?? `Request failed (${res.status})`)
+      }
+
+      setResults(data as unknown as Results)
+      setNarrative((data.narrative as string) ?? null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setLoading(false)
     }
@@ -120,6 +135,10 @@ export default function Home() {
             >
               {loading ? 'Analyzing…' : 'Run Analysis'}
             </button>
+
+            {error && (
+              <p className="text-sm text-red-400">{error}</p>
+            )}
           </form>
 
           {results && <ResultsTable affected={results.affected} />}
