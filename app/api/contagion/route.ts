@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     let narrative: string | null = null;
     const rrClient = new RocketRideClient({
       uri: process.env.ROCKETRIDE_URI,
-      auth: process.env.ROCKETRIDE_APIKEY,
+      auth: process.env.ROCKETRIDE_API_KEY,
       env: { ROCKETRIDE_OPENAI_KEY: process.env.ROCKETRIDE_OPENAI_KEY ?? "" },
     });
     try {
