@@ -5,20 +5,6 @@ import ResultsTable from './components/ResultsTable'
 import NarrativeBox from './components/NarrativeBox'
 import ContagionGraph from './components/ContagionGraph'
 
-const FAKE_RESULTS = {
-  shock_company: 'Apple',
-  shock_pct: -0.30,
-  affected: [
-    { company: 'TSMC', exposure: -0.075, hop: 1 },
-    { company: 'Qualcomm', exposure: -0.060, hop: 1 },
-    { company: 'ASML', exposure: -0.015, hop: 2 },
-    { company: 'NVIDIA', exposure: -0.012, hop: 2 },
-    { company: 'BASF', exposure: -0.003, hop: 3 },
-  ],
-}
-
-const FAKE_NARRATIVE =
-  'A −30% earnings shock to Apple propagates through two critical chokepoints in the semiconductor supply chain. TSMC absorbs the largest direct exposure at −7.5%, reflecting Apple\'s outsized share of its leading-edge node capacity. Qualcomm follows at −6.0% due to its Apple-dependent modem revenue. At hop 2, ASML and NVIDIA face indirect drag as downstream orders soften. BASF\'s marginal −0.3% exposure at hop 3 suggests the shock largely dissipates before reaching chemical inputs. Risk is concentrated at hop 1 — interventions targeting TSMC hedging would have the highest systemic impact.'
 
 interface AffectedCompany {
   company: string
@@ -34,7 +20,7 @@ interface Results {
 
 export default function Home() {
   const [company, setCompany] = useState('')
-  const [shockPct, setShockPct] = useState(-30)
+  const [shockPct, setShockPct] = useState(0)
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<Results | null>(null)
   const [narrative, setNarrative] = useState<string | null>(null)
@@ -43,12 +29,18 @@ export default function Home() {
     e.preventDefault()
     if (!company.trim()) return
     setLoading(true)
-    // TODO Hour 3: replace with real API calls
-    setTimeout(() => {
-      setResults(FAKE_RESULTS)
-      setNarrative(FAKE_NARRATIVE)
+    try {
+      const res = await fetch('/api/contagion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shock_company: company, shock_pct: shockPct / 100 }),
+      })
+      const data = await res.json()
+      setResults(data)
+      setNarrative(data.narrative ?? null)
+    } finally {
       setLoading(false)
-    }, 800)
+    }
   }
 
   return (

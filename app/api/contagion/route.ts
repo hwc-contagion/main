@@ -1,5 +1,4 @@
 import { runQuery } from "@/lib/neo4j";
-import { RocketRideClient, Question } from "rocketride";
 
 // Neo4j returns small integers as native JS numbers, but guard against
 // the Integer object form just in case.
@@ -55,44 +54,11 @@ export async function POST(request: Request) {
 
   const rows = await runQuery(query, { shock_company, shock_pct });
 
-  const exposures = rows.map((row) => ({
+  const affected = rows.map((row) => ({
     company: String(row.company),
-    hops: toNumber(row.hops),
+    hop: toNumber(row.hops),
     exposure: toNumber(row.exposure),
   }));
 
-  // Prepare contagion data for the pipeline
-  const contagionData = {
-    shock_company,
-    shock_pct,
-    exposures
-  };
-
-  // Use RocketRide pipeline to generate narrative
-  const client = new RocketRideClient();
-
-  try {
-    await client.connect();
-    const result = await client.use({ filepath: 'narrative.pipe' });
-    const token = result.token;
-
-    // Build a Question with the contagion data as context
-    const question = new Question();
-    question.addContext(contagionData);
-    question.addQuestion(
-      "Generate an analyst narrative describing how this earnings shock propagates through the supply chain."
-    );
-
-    const response = await client.chat({ token, question });
-    const answers = response.answers as string[] | undefined;
-    const narrative = Array.isArray(answers) ? answers[0] : String(answers ?? "");
-
-    return Response.json({ shock_company, shock_pct, exposures, narrative });
-  } catch (error) {
-    console.error('Pipeline error:', error);
-    // Still return the graph data even if narrative generation fails
-    return Response.json({ shock_company, shock_pct, exposures, narrative: null });
-  } finally {
-    await client.disconnect();
-  }
+  return Response.json({ shock_company, shock_pct, affected, narrative: null });
 }

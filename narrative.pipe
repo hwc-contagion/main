@@ -1,6 +1,4 @@
 {
-  "project_id": "aeb00721-57fa-4e1e-8ffe-cd9d45a1dc78",
-  "source": "chat_1",
   "components": [
     {
       "id": "chat_1",
@@ -59,11 +57,7 @@
         "openai-5-nano": {
           "apikey": "${ROCKETRIDE_OPENAI_KEY}"
         },
-        "parameters": {
-          "google": {}
-        },
-        "openai-5-nano": {
-        }
+        "parameters": {}
       },
       "ui": {
         "position": {
@@ -114,5 +108,7 @@
     "zoom": 0.9363749840775073
   },
   "version": 1,
-  "docRevision": 16
+  "docRevision": 16,
+  "source": "chat_1",
+  "project_id": "aeb00721-57fa-4e1e-8ffe-cd9d45a1dc78"
 }
