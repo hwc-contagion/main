@@ -1,5 +1,6 @@
+import path from "path";
 import { runQuery } from "@/lib/neo4j";
-import OpenAI from "openai";
+import { RocketRideClient, Question } from "rocketride";
 
 function toNumber(val: unknown): number {
   if (typeof val === "number") return val;
@@ -57,25 +58,24 @@ export async function POST(request: Request) {
     }));
 
     let narrative: string | null = null;
+    const rrClient = new RocketRideClient({
+      uri: process.env.ROCKETRIDE_URI,
+      auth: process.env.ROCKETRIDE_API_KEY,
+      env: { ROCKETRIDE_OPENAI_KEY: process.env.ROCKETRIDE_OPENAI_KEY ?? "" },
+    });
     try {
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a sharp financial risk analyst. Given contagion exposure data, go beyond summarizing — draw a conclusion in exactly 3-4 sentences. Identify which transmission pattern is most dangerous and why, flag any companies whose exposure seems disproportionate to their hop distance, and end with a concrete takeaway about systemic risk. Be specific with names and numbers. Do not just restate the data.",
-          },
-          {
-            role: "user",
-            content: JSON.stringify({ shock_company, shock_pct, affected }),
-          },
-        ],
-      });
-      narrative = completion.choices[0]?.message?.content ?? null;
+      await rrClient.connect();
+      const { token } = await rrClient.use({ filepath: path.join(process.cwd(), "narrative.pipe") });
+      const question = new Question();
+      question.addContext(JSON.stringify({ shock_company, shock_pct, affected }));
+      question.addQuestion("Generate the risk narrative.");
+      const response = await rrClient.chat({ token, question });
+      narrative = response.answers?.[0] ?? null;
+      await rrClient.terminate(token);
     } catch (err) {
-      console.error("OpenAI narrative failed:", err);
+      console.error("RocketRide narrative failed:", err);
+    } finally {
+      await rrClient.disconnect();
     }
 
     return Response.json({ shock_company, shock_pct, affected, narrative });
