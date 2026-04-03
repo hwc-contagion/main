@@ -1,6 +1,6 @@
-import path from "path";
 import { runQuery } from "@/lib/neo4j";
-import { RocketRideClient, Question } from "rocketride";
+import { Question } from "rocketride";
+import { rrClient, getNarrativeToken, invalidateNarrativeToken } from "@/lib/rocketride";
 
 function toNumber(val: unknown): number {
   if (typeof val === "number") return val;
@@ -58,24 +58,18 @@ export async function POST(request: Request) {
     }));
 
     let narrative: string | null = null;
-    const rrClient = new RocketRideClient({
-      uri: process.env.ROCKETRIDE_URI,
-      auth: process.env.ROCKETRIDE_API_KEY,
-      env: { ROCKETRIDE_OPENAI_KEY: process.env.ROCKETRIDE_OPENAI_KEY ?? "" },
-    });
     try {
-      await rrClient.connect();
-      const { token } = await rrClient.use({ filepath: path.join(process.cwd(), "narrative.pipe") });
+      const token = await getNarrativeToken();
       const question = new Question();
-      question.addContext(JSON.stringify({ shock_company, shock_pct, affected }));
+      question.addInstruction("Role", "You are a financial risk analyst.");
+      question.addInstruction("Format", "Respond with exactly 4 sentences of plain prose. No headers. No bullet points. No lists. No sections. No caveats. Just 4 sentences in a single paragraph. Sentence 1: the shock and its magnitude. Sentence 2: the top 2-3 most exposed companies and their exposure values. Sentence 3: why those exposures are dangerous. Sentence 4: a specific investor action (name the ticker). Stop after sentence 4.");
+      question.addContext(JSON.stringify({ shock_company, shock_pct_display: `${(shock_pct * 100).toFixed(1)}%`, affected }));
       question.addQuestion("Generate the risk narrative.");
       const response = await rrClient.chat({ token, question });
       narrative = response.answers?.[0] ?? null;
-      await rrClient.terminate(token);
     } catch (err) {
       console.error("RocketRide narrative failed:", err);
-    } finally {
-      await rrClient.disconnect();
+      invalidateNarrativeToken();
     }
 
     return Response.json({ shock_company, shock_pct, affected, narrative });
