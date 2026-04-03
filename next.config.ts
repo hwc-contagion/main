@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/contagion": ["./narrative.pipe"],
     "/api/narrative": ["./narrative.pipe"],
+    "/api/parse-shock": ["./parse-shock.pipe"],
   },
 };
 

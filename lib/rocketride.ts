@@ -9,8 +9,6 @@ const client = new RocketRideClient({
 })
 
 let connectPromise: Promise<void> | null = null
-let narrativeToken: string | null = null
-const NARRATIVE_PIPE_VERSION = 5
 
 async function ensureConnected() {
   if (!client.isConnected()) {
@@ -21,23 +19,42 @@ async function ensureConnected() {
   }
 }
 
-export async function getNarrativeToken(): Promise<string> {
+async function getPipelineToken(file: string, version: number): Promise<string> {
   await ensureConnected()
-  if (!narrativeToken) {
-    const { token } = await client.use({
-      filepath: path.join(process.cwd(), 'narrative.pipe'),
-      token: `narrative-pipeline-v${NARRATIVE_PIPE_VERSION}`,
-      ttl: 3600,
-      useExisting: true,
-    })
-    narrativeToken = token
-  }
+  const { token } = await client.use({
+    filepath: path.join(process.cwd(), file),
+    token: `${file}-v${version}`,
+    ttl: 3600,
+    useExisting: true,
+  })
+  return token
+}
+
+const NARRATIVE_VERSION = 5
+let narrativeToken: string | null = null
+
+export async function getNarrativeToken(): Promise<string> {
+  if (!narrativeToken) narrativeToken = await getPipelineToken('narrative.pipe', NARRATIVE_VERSION)
   return narrativeToken
 }
 
 export function invalidateNarrativeToken() {
   const old = narrativeToken
   narrativeToken = null
+  if (old) client.terminate(old).catch(() => {})
+}
+
+const PARSE_SHOCK_VERSION = 1
+let parseShockToken: string | null = null
+
+export async function getParseShockToken(): Promise<string> {
+  if (!parseShockToken) parseShockToken = await getPipelineToken('parse-shock.pipe', PARSE_SHOCK_VERSION)
+  return parseShockToken
+}
+
+export function invalidateParseShockToken() {
+  const old = parseShockToken
+  parseShockToken = null
   if (old) client.terminate(old).catch(() => {})
 }
 
