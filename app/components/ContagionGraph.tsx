@@ -12,15 +12,31 @@ interface AffectedCompany {
   hop: number
 }
 
+interface Edge {
+  from: string
+  to: string
+  rel_type: string
+  weight: number
+}
+
 interface Props {
   shockCompany: string
   shockPct: number
   affected: AffectedCompany[]
+  edges: Edge[]
+}
+
+interface EdgePopup {
+  x: number
+  y: number
+  from: string
+  to: string
+  relType: string
+  weight: number
 }
 
 const NODE_REL_SIZE = 4
 
-// Must match nodeRelSize so collision geometry is consistent
 function nodeVal(hop: number, exposure: number): number {
   return hop === 0 ? 28 : Math.max(3, Math.min(60, Math.abs(exposure) * 650))
 }
@@ -28,8 +44,6 @@ function nodeRadius(hop: number, exposure: number): number {
   return Math.sqrt(nodeVal(hop, exposure)) * NODE_REL_SIZE
 }
 
-// Place `count` nodes evenly on a ring, ensuring the ring is wide enough
-// so no two adjacent circles overlap.
 function ringPositions(
   nodes: AffectedCompany[],
   minRadius: number,
@@ -37,11 +51,9 @@ function ringPositions(
   const n = nodes.length
   if (n === 0) return []
   if (n === 1) return [{ fx: 0, fy: -minRadius }]
-
   const maxR = Math.max(...nodes.map(a => nodeRadius(a.hop, a.exposure)))
   const circumferenceNeeded = n * (maxR * 2 + 20)
   const r = Math.max(minRadius, circumferenceNeeded / (2 * Math.PI))
-
   return nodes.map((_, i) => {
     const angle = (2 * Math.PI * i) / n - Math.PI / 2
     return { fx: Math.cos(angle) * r, fy: Math.sin(angle) * r }
@@ -51,10 +63,63 @@ function ringPositions(
 const NEG_COLORS = ['#f1f5f9', '#ef4444', '#f87171', '#fca5a5']
 const POS_COLORS = ['#f1f5f9', '#22c55e', '#4ade80', '#86efac']
 
-export default function ContagionGraph({ shockCompany, shockPct, affected }: Props) {
+// ── Sector mapping ────────────────────────────────────────────────────────────
+
+const COMPANY_SECTOR: Record<string, string> = {
+  Apple:               'Consumer Tech',
+  TSMC:                'Semiconductors',
+  ASML:                'Semiconductors',
+  Qualcomm:            'Semiconductors',
+  Broadcom:            'Semiconductors',
+  Samsung:             'Semiconductors',
+  Nvidia:              'Semiconductors',
+  Boeing:              'Aerospace',
+  'Spirit AeroSystems':'Aerospace',
+  Amazon:              'E-commerce',
+  UPS:                 'Logistics',
+  FedEx:               'Logistics',
+  Ford:                'Automotive',
+  GM:                  'Automotive',
+  'LG Energy Solution':'Automotive',
+}
+
+const SECTOR_COLORS: Record<string, string> = {
+  'Consumer Tech': '#818cf8',
+  'Semiconductors': '#a78bfa',
+  'Aerospace':      '#60a5fa',
+  'E-commerce':     '#f59e0b',
+  'Logistics':      '#34d399',
+  'Automotive':     '#f87171',
+}
+
+const SECTOR_ORDER = [
+  'Consumer Tech',
+  'Semiconductors',
+  'Aerospace',
+  'E-commerce',
+  'Logistics',
+  'Automotive',
+]
+
+function sectorColor(company: string): string {
+  const s = COMPANY_SECTOR[company]
+  return s ? (SECTOR_COLORS[s] ?? '') : ''
+}
+
+const REL_TYPE_LABELS: Record<string, string> = {
+  SUPPLIES_TO: 'Supplier relationship',
+  CUSTOMER_OF:  'Customer relationship',
+  CREDITOR_OF:  'Credit exposure',
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export default function ContagionGraph({ shockCompany, shockPct, affected, edges }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const graphRef = useRef<ForceGraphMethods | undefined>(undefined)
   const [width, setWidth] = useState(500)
+  const [visibleHops, setVisibleHops] = useState(1)
+  const [edgePopup, setEdgePopup] = useState<EdgePopup | null>(null)
   const HEIGHT = 520
   const isNeg = shockPct < 0
   const palette = isNeg ? NEG_COLORS : POS_COLORS
@@ -67,7 +132,17 @@ export default function ContagionGraph({ shockCompany, shockPct, affected }: Pro
     return () => ro.disconnect()
   }, [])
 
-  const graphData = useMemo(() => {
+  // Animate hop-by-hop reveal whenever new results arrive
+  useEffect(() => {
+    setVisibleHops(1)
+    setEdgePopup(null)
+    const t1 = setTimeout(() => setVisibleHops(2), 700)
+    const t2 = setTimeout(() => setVisibleHops(3), 1400)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [shockCompany, shockPct, affected])
+
+  // Full graph layout (positions never change, only visibility does)
+  const allGraphData = useMemo(() => {
     const hop1 = affected.filter(a => a.hop === 1)
     const hop2 = affected.filter(a => a.hop === 2)
     const hop3 = affected.filter(a => a.hop === 3)
@@ -83,30 +158,58 @@ export default function ContagionGraph({ shockCompany, shockPct, affected }: Pro
 
     const nodes = [
       { id: shockCompany, hop: 0, exposure: shockPct, fx: 0, fy: 0 },
-      ...affected.map(a => ({ id: a.company, hop: a.hop, exposure: a.exposure, ...posMap[a.company] })),
-    ]
-
-    const links = [
-      ...hop1.map(a => ({ source: shockCompany, target: a.company, weight: Math.abs(a.exposure) })),
-      ...hop2.map((a, i) => ({
-        source: hop1.length ? hop1[i % hop1.length].company : shockCompany,
-        target: a.company,
-        weight: Math.abs(a.exposure),
-      })),
-      ...hop3.map((a, i) => ({
-        source: hop2.length
-          ? hop2[i % hop2.length].company
-          : hop1.length ? hop1[i % hop1.length].company : shockCompany,
-        target: a.company,
-        weight: Math.abs(a.exposure),
+      ...affected.map(a => ({
+        id: a.company,
+        hop: a.hop,
+        exposure: a.exposure,
+        ...posMap[a.company],
       })),
     ]
 
+    const hopOf: Record<string, number> = { [shockCompany]: 0 }
+    affected.forEach(a => { hopOf[a.company] = a.hop })
+
+    // Use real edges from the API; tag each with the max hop of its endpoints
+    const links = edges.map(e => ({
+      source: e.from,
+      target: e.to,
+      rel_type: e.rel_type,
+      weight: e.weight,
+      maxHop: Math.max(hopOf[e.from] ?? 0, hopOf[e.to] ?? 0),
+    }))
+
+    return { nodes, links, hopOf }
+  }, [shockCompany, shockPct, affected, edges])
+
+  // Slice to currently visible hops
+  const graphData = useMemo(() => {
+    const nodes = allGraphData.nodes.filter(n => n.hop <= visibleHops)
+    const visibleIds = new Set(nodes.map(n => n.id))
+    const links = allGraphData.links.filter(l => {
+      const src = typeof l.source === 'object' ? (l.source as { id: string }).id : l.source
+      const tgt = typeof l.target === 'object' ? (l.target as { id: string }).id : l.target
+      return visibleIds.has(src) && visibleIds.has(tgt)
+    })
     return { nodes, links }
-  }, [shockCompany, shockPct, affected])
+  }, [allGraphData, visibleHops])
+
+  // Sectors that are actually present in the result
+  const sectorsPresent = useMemo(() => {
+    const seen = new Set<string>()
+    affected.forEach(a => {
+      const s = COMPANY_SECTOR[a.company]
+      if (s) seen.add(s)
+    })
+    return SECTOR_ORDER.filter(s => seen.has(s))
+  }, [affected])
 
   return (
-    <div ref={containerRef} className="relative w-full" style={{ height: HEIGHT }}>
+    <div
+      ref={containerRef}
+      className="relative w-full"
+      style={{ height: HEIGHT }}
+      onClick={() => setEdgePopup(null)}
+    >
       <ForceGraph2D
         ref={graphRef}
         graphData={graphData}
@@ -116,7 +219,6 @@ export default function ContagionGraph({ shockCompany, shockPct, affected }: Pro
         nodeRelSize={NODE_REL_SIZE}
         nodeVal={node => nodeVal(node.hop as number, node.exposure as number)}
         nodeColor={node => palette[node.hop as number] ?? '#71717a'}
-        // Tooltip on hover
         nodeLabel={node => {
           const exp = (node.exposure as number) * 100
           return `${node.id} — ${exp >= 0 ? '+' : ''}${exp.toFixed(1)}%`
@@ -128,23 +230,32 @@ export default function ContagionGraph({ shockCompany, shockPct, affected }: Pro
           const x = node.x ?? 0
           const y = node.y ?? 0
           const r = nodeRadius(hop, exposure)
+          const fillColor = palette[hop] ?? '#71717a'
+          const ringColor = hop > 0 ? sectorColor(node.id as string) : ''
 
-          // ── Circle ──────────────────────────────────────────────────────
+          // Fill
           ctx.beginPath()
           ctx.arc(x, y, r, 0, 2 * Math.PI)
-          ctx.fillStyle = palette[hop] ?? '#71717a'
+          ctx.fillStyle = fillColor
           ctx.fill()
 
-          // Subtle ring on the central node so it stands out on dark bg
+          // Sector ring (outer border) for non-center nodes
+          if (ringColor) {
+            const ringWidth = 2.5 / globalScale
+            ctx.beginPath()
+            ctx.arc(x, y, r + ringWidth / 2, 0, 2 * Math.PI)
+            ctx.strokeStyle = ringColor
+            ctx.lineWidth = ringWidth
+            ctx.stroke()
+          }
+
+          // Subtle white ring on the shock center node
           if (hop === 0) {
             ctx.strokeStyle = 'rgba(255,255,255,0.25)'
             ctx.lineWidth = 2 / globalScale
             ctx.stroke()
           }
 
-          // ── Label ────────────────────────────────────────────────────────
-          // Position the label radially outward from graph center (0,0).
-          // For the central shock node, place it directly below.
           const label = String(node.id)
           const fontSize = Math.max(9, 11 / globalScale)
           ctx.font = `600 ${fontSize}px Inter, ui-sans-serif, sans-serif`
@@ -160,23 +271,19 @@ export default function ContagionGraph({ shockCompany, shockPct, affected }: Pro
             ctx.textAlign = 'center'
             ctx.textBaseline = 'top'
           } else {
-            // Unit vector pointing away from graph centre (0,0)
             const mag = Math.hypot(x, y) || 1
             const ux = x / mag
             const uy = y / mag
             labelX = x + ux * (r + gap)
             labelY = y + uy * (r + gap)
-
-            // Align text so it grows outward, not back over the node
             ctx.textAlign = ux > 0.25 ? 'left' : ux < -0.25 ? 'right' : 'center'
             ctx.textBaseline = uy > 0.25 ? 'top' : uy < -0.25 ? 'bottom' : 'middle'
           }
 
           const tw = ctx.measureText(label).width
-
-          // Dark pill behind the text
           const pillW = tw + pad * 2
           const pillH = fontSize + pad * 2
+
           let pillX = labelX
           if (ctx.textAlign === 'left') pillX = labelX - pad
           else if (ctx.textAlign === 'right') pillX = labelX - tw - pad
@@ -210,27 +317,70 @@ export default function ContagionGraph({ shockCompany, shockPct, affected }: Pro
         linkDirectionalArrowLength={5}
         linkDirectionalArrowRelPos={1}
         linkDirectionalArrowColor={() => '#52525b'}
+        onLinkClick={(link, event) => {
+          event.stopPropagation()
+          const rect = containerRef.current?.getBoundingClientRect()
+          const x = event.clientX - (rect?.left ?? 0)
+          const y = event.clientY - (rect?.top ?? 0)
+          const src = typeof link.source === 'object'
+            ? (link.source as { id: string }).id
+            : String(link.source)
+          const tgt = typeof link.target === 'object'
+            ? (link.target as { id: string }).id
+            : String(link.target)
+          setEdgePopup({
+            x, y,
+            from: src,
+            to: tgt,
+            relType: (link as { rel_type?: string }).rel_type ?? '',
+            weight: (link.weight as number) ?? 0,
+          })
+        }}
         enableNodeDrag={false}
         cooldownTicks={0}
         onEngineStop={() => graphRef.current?.zoomToFit(300, 48)}
       />
 
-      {/* Legend overlay */}
-      <div className="absolute bottom-3 left-3 flex flex-col gap-1 pointer-events-none">
-        {[1, 2, 3].map(hop => (
-          <div key={hop} className="flex items-center gap-1.5">
-            <div
-              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-              style={{ background: palette[hop] }}
-            />
-            <span className="text-[10px] text-zinc-400">
-              {hop === 1 ? 'Direct (hop 1)' : hop === 2 ? 'Indirect (hop 2)' : 'Distal (hop 3)'}
+      {/* Edge relationship popup */}
+      {edgePopup && (
+        <div
+          className="absolute z-10 bg-zinc-800 border border-zinc-700 rounded-xl px-3.5 py-2.5 shadow-xl text-xs pointer-events-none"
+          style={{
+            left: Math.min(edgePopup.x + 14, width - 210),
+            top: Math.max(edgePopup.y - 14, 8),
+            minWidth: 190,
+          }}
+        >
+          <p className="font-semibold text-zinc-100 mb-1 leading-snug">
+            {edgePopup.from}
+            <span className="text-zinc-500 mx-1">→</span>
+            {edgePopup.to}
+          </p>
+          <p className="text-zinc-400">
+            <span className="text-zinc-200">
+              {REL_TYPE_LABELS[edgePopup.relType] ?? edgePopup.relType}
             </span>
+          </p>
+          <p className="text-zinc-500 mt-0.5">
+            Weight: {(edgePopup.weight * 100).toFixed(0)}%
+          </p>
+        </div>
+      )}
+
+      {/* Sector legend — rings match the node borders */}
+      <div className="absolute bottom-3 left-3 flex flex-col gap-1 pointer-events-none">
+        {sectorsPresent.map(sector => (
+          <div key={sector} className="flex items-center gap-1.5">
+            <div
+              className="w-2.5 h-2.5 rounded-full flex-shrink-0 bg-transparent"
+              style={{ border: `2px solid ${SECTOR_COLORS[sector]}` }}
+            />
+            <span className="text-[10px] text-zinc-400">{sector}</span>
           </div>
         ))}
       </div>
 
-      {/* Shock summary overlay */}
+      {/* Shock summary */}
       <div className="absolute bottom-3 right-3 text-right pointer-events-none">
         <p className="text-[11px] font-semibold text-zinc-300">{shockCompany}</p>
         <p className={`text-[11px] font-semibold ${isNeg ? 'text-red-400' : 'text-green-400'}`}>

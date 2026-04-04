@@ -60,10 +60,12 @@ export async function POST(request: Request) {
     let narrative: string | null = null;
     try {
       const token = await getNarrativeToken();
+      const isPositive = shock_pct >= 0;
+      const shock_pct_display = `${isPositive ? "+" : ""}${(shock_pct * 100).toFixed(1)}%`;
       const question = new Question();
       question.addInstruction("Role", "You are a financial risk analyst.");
-      question.addInstruction("Format", "Respond with exactly 4 sentences of plain prose. No headers. No bullet points. No lists. No sections. No caveats. Just 4 sentences in a single paragraph. Sentence 1: the shock and its magnitude. Sentence 2: the top 2-3 most exposed companies and their exposure values. Sentence 3: why those exposures are dangerous. Sentence 4: a specific investor action (name the ticker). Stop after sentence 4.");
-      question.addContext(JSON.stringify({ shock_company, shock_pct_display: `${(shock_pct * 100).toFixed(1)}%`, affected }));
+      question.addInstruction("Format", "Respond with exactly 4 sentences of plain prose. No headers. No bullet points. No lists. No sections. No caveats. Just 4 sentences in a single paragraph. Sentence 1: the shock and its magnitude, describing it as a positive or negative event depending on the sign. Sentence 2: the top 2-3 most exposed companies and their exposure values. Sentence 3: why those exposures are " + (isPositive ? "significant upside opportunities." : "dangerous.") + " Sentence 4: a specific investor action (name the ticker). Stop after sentence 4.");
+      question.addContext(JSON.stringify({ shock_company, shock_pct_display, affected }));
       question.addQuestion("Generate the risk narrative.");
       const response = await rrClient.chat({ token, question });
       narrative = response.answers?.[0] ?? null;
@@ -72,7 +74,22 @@ export async function POST(request: Request) {
       invalidateNarrativeToken();
     }
 
-    return Response.json({ shock_company, shock_pct, affected, narrative });
+    // Fetch all direct relationships between companies in the result set
+    const allNames = [shock_company.trim(), ...affected.map((a) => a.company)];
+    const edgeRows = await runQuery(
+      `MATCH (a:Company)-[r]-(b:Company)
+       WHERE a.name IN $names AND b.name IN $names
+       RETURN a.name AS from, b.name AS to, type(r) AS rel_type, r.weight AS weight`,
+      { names: allNames }
+    );
+    const edges = edgeRows.map((row) => ({
+      from: String(row.from),
+      to: String(row.to),
+      rel_type: String(row.rel_type),
+      weight: toNumber(row.weight),
+    }));
+
+    return Response.json({ shock_company, shock_pct, affected, edges, narrative });
   } catch (err) {
     console.error("Unhandled error in POST /api/contagion:", err);
     return Response.json({ error: "Internal server error" }, { status: 500 });
