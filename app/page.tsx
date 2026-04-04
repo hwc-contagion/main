@@ -257,6 +257,7 @@ export default function Home() {
             )}
           </div>
           <SectorBreakdown affected={results?.affected ?? []} />
+          {narrative && <NarrativeBox narrative={narrative} />}
         </div>
 
         {/* Right — controls + results */}
@@ -387,7 +388,6 @@ export default function Home() {
             affected={results?.affected ?? []}
             edges={results?.edges ?? []}
           />
-          {narrative && <NarrativeBox narrative={narrative} />}
         </div>
       </div>
     </div>
