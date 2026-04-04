@@ -1,11 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import ResultsTable from './components/ResultsTable'
+import AffectedPanel from './components/AffectedPanel'
 import NarrativeBox from './components/NarrativeBox'
 import ContagionGraph from './components/ContagionGraph'
 import SectorBreakdown from './components/SectorBreakdown'
-import PathChains from './components/PathChains'
 
 interface AffectedCompany {
   company: string
@@ -258,11 +257,6 @@ export default function Home() {
             )}
           </div>
           <SectorBreakdown affected={results?.affected ?? []} />
-          <PathChains
-            shockCompany={results?.shock_company ?? ''}
-            affected={results?.affected ?? []}
-            edges={results?.edges ?? []}
-          />
         </div>
 
         {/* Right — controls + results */}
@@ -388,7 +382,11 @@ export default function Home() {
             </div>
           </form>
 
-          {results && <ResultsTable affected={results.affected} />}
+          <AffectedPanel
+            shockCompany={results?.shock_company ?? ''}
+            affected={results?.affected ?? []}
+            edges={results?.edges ?? []}
+          />
           {narrative && <NarrativeBox narrative={narrative} />}
         </div>
       </div>
