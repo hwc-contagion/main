@@ -260,9 +260,16 @@ export default function Home() {
           <TremorIcon />
           <span className="text-base font-black tracking-tight text-zinc-100">TREMOR</span>
         </Link>
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-70 animate-pulse" />
-          <span className="text-xs text-zinc-500 uppercase tracking-widest">Contagion Analysis</span>
+        <div className="flex items-center gap-1 bg-zinc-800/50 border border-zinc-700/40 rounded-xl p-1">
+          <span className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-zinc-700 text-zinc-100">
+            Analysis
+          </span>
+          <Link
+            href="/explore"
+            className="px-3.5 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors"
+          >
+            Explore
+          </Link>
         </div>
       </nav>
 
