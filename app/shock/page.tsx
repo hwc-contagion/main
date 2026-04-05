@@ -31,7 +31,7 @@ export default function ShockConfigPage() {
   const saved = getAnalyzeState()
   const [mode, setMode] = useState<'manual' | 'natural'>(saved.mode ?? 'manual')
   const [company, setCompany] = useState(saved.company)
-  const [shockPct, setShockPct] = useState(saved.shockPct !== 0 ? saved.shockPct : -30)
+  const [shockPct, setShockPct] = useState(saved.shockPct ?? 0)
   const [prompt, setPrompt] = useState(saved.prompt)
   const [parsing, setParsing] = useState(false)
   const [parseError, setParseError] = useState<string | null>(null)
@@ -192,7 +192,7 @@ export default function ShockConfigPage() {
           <button
             onClick={handleContinue}
             disabled={!canContinue}
-            className="w-full flex items-center justify-center gap-2 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed transition-all rounded-xl px-6 py-3.5 font-semibold text-sm text-white"
+            className="w-full flex items-center justify-center gap-2 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed cursor-pointer transition-all rounded-xl px-6 py-3.5 font-semibold text-sm text-white"
             style={canContinue ? { background: 'linear-gradient(135deg, #3b82f6, #2563eb)', boxShadow: '0 0 0 1px rgba(59,130,246,0.3), 0 4px 16px rgba(59,130,246,0.2), 0 1px 0 rgba(255,255,255,0.1) inset' } : {}}
           >
             Run Analysis
