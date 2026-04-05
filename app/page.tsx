@@ -54,7 +54,7 @@ export default function LandingPage() {
           href="/analyze"
           className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors tracking-wide"
         >
-          Open app →
+          Skip to analysis →
         </Link>
       </nav>
 
@@ -81,15 +81,23 @@ export default function LandingPage() {
             Type a company, describe a scenario — see the contagion in seconds.
           </p>
 
-          <Link
-            href="/analyze"
-            className="group flex items-center gap-2.5 bg-blue-500 hover:bg-blue-400 transition-colors rounded-xl px-7 py-3.5 text-white font-semibold text-sm shadow-lg shadow-blue-500/20"
-          >
-            Run an analysis
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:translate-x-0.5">
-              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </Link>
+          <div className="flex flex-col gap-3">
+            <Link
+              href="/portfolio"
+              className="group flex items-center gap-2.5 bg-blue-500 hover:bg-blue-400 transition-colors rounded-xl px-7 py-3.5 text-white font-semibold text-sm shadow-lg shadow-blue-500/20 self-start"
+            >
+              Get started
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:translate-x-0.5">
+                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
+            <Link
+              href="/analyze"
+              className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors pl-1"
+            >
+              Skip — go straight to analysis →
+            </Link>
+          </div>
         </div>
 
         {/* Right — animated graph */}

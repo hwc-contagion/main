@@ -9,6 +9,9 @@ import SectorBreakdown from '../components/SectorBreakdown'
 import CompanyDrawer from '../components/CompanyDrawer'
 import { getAnalyzeState, saveAnalyzeState } from '@/lib/analyzeStore'
 import type { AffectedCompany, Edge, Results } from '@/lib/analyzeStore'
+import { getHoldings, hasHoldings } from '@/lib/portfolioStore'
+import { resolveCompany } from '@/lib/company-aliases'
+import { COMPANY_SECTOR, SECTOR_COLORS } from '@/lib/sectors'
 
 function TremorIcon() {
   return (
@@ -75,29 +78,27 @@ function findCriticalNode(
 // ── Help content ───────────────────────────────────────────────────────────────
 const ANALYZE_HELP = [
   {
-    title: 'Running an analysis',
+    title: 'Inputs',
     items: [
-      { label: 'Manual mode', desc: 'Enter a company name and drag the slider to set the earnings shock (negative = miss, positive = beat).' },
-      { label: 'Natural language', desc: 'Describe a hypothetical event in plain English — the AI parses the company and estimated shock magnitude.' },
-      { label: 'Run Analysis', desc: 'Executes the contagion model and propagates the shock through the supply chain graph up to 3 hops.' },
+      { label: 'Manual', desc: 'Company name or ticker + shock % slider.' },
+      { label: 'Natural language', desc: 'Describe a scenario in plain English — AI extracts the company and magnitude.' },
     ],
   },
   {
-    title: 'Reading the graph',
+    title: 'Graph',
     items: [
-      { label: 'Node size', desc: 'Reflects earnings exposure magnitude — larger nodes are more affected by the shock.' },
-      { label: 'Ring color', desc: 'Each industry sector has a unique color shown as a ring around the node.' },
-      { label: 'Red / green', desc: 'Red nodes have negative exposure (hurt by the shock), green nodes benefit.' },
-      { label: 'Show slider', desc: 'Top-right slider controls how many companies are visible in the graph at once.' },
-      { label: 'Click a node', desc: 'Opens a company profile with its full supplier and customer list.' },
+      { label: 'Node size', desc: 'Larger = more exposed.' },
+      { label: 'Ring color', desc: 'Sector. Hover for exact exposure %.' },
+      { label: 'Top-N slider', desc: 'Limits how many companies are shown.' },
+      { label: 'Click a node', desc: 'Opens the company profile.' },
     ],
   },
   {
     title: 'Panels',
     items: [
-      { label: 'Sector Exposure', desc: 'Average exposure per company, broken down by industry sector.' },
-      { label: 'Affected Companies', desc: 'Full ranked list of impacted companies with their supply chain path from the shock origin.' },
-      { label: 'Critical Node', desc: 'When toggled on, highlights the company in the current result set whose removal would disconnect the most others — the most structurally important node in the visible graph.' },
+      { label: 'Critical Node', desc: 'Amber highlight — most structurally fragile company in the graph.' },
+      { label: 'Portfolio Exposure', desc: 'Your weighted indirect exposure. Requires holdings set up in Portfolio.' },
+      { label: 'Analyst Narrative', desc: 'AI summary. Hit "Learn more" for a full deep-dive.' },
     ],
   },
 ]
@@ -202,6 +203,145 @@ function PlaceholderGraph() {
   )
 }
 
+// ── Portfolio exposure ────────────────────────────────────────────────────────
+interface PortfolioHoldingResult {
+  inputName: string
+  resolvedName: string
+  weight: number
+  exposure: number
+  contribution: number
+  isShockCompany: boolean
+  inNetwork: boolean
+}
+
+interface PortfolioExposure {
+  totalIndirect: number
+  directWeight: number
+  shockCompany: string
+  shockPct: number
+  breakdown: PortfolioHoldingResult[]
+}
+
+function calcPortfolioExposure(results: Results): PortfolioExposure | null {
+  const holdings = getHoldings().filter(h => h.company.trim() && (parseFloat(h.weight) || 0) > 0)
+  if (holdings.length === 0) return null
+
+  const exposureMap = new Map<string, number>(results.affected.map(a => [a.company, a.exposure]))
+  let directWeight = 0
+
+  const breakdown: PortfolioHoldingResult[] = holdings.map(h => {
+    const resolvedName = resolveCompany(h.company)
+    const weight = (parseFloat(h.weight) || 0) / 100
+    const isShockCompany = resolvedName === results.shock_company
+    if (isShockCompany) directWeight += weight
+    const exposure = isShockCompany ? 0 : (exposureMap.get(resolvedName) ?? 0)
+    const inNetwork = isShockCompany || exposureMap.has(resolvedName)
+    return { inputName: h.company, resolvedName, weight, exposure, contribution: weight * exposure, isShockCompany, inNetwork }
+  })
+
+  const totalIndirect = breakdown.filter(b => !b.isShockCompany).reduce((s, b) => s + b.contribution, 0)
+  return {
+    totalIndirect,
+    directWeight,
+    shockCompany: results.shock_company,
+    shockPct: results.shock_pct,
+    breakdown: [...breakdown].sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution)),
+  }
+}
+
+function PortfolioExposurePanel({ exposure }: { exposure: PortfolioExposure }) {
+  const [expanded, setExpanded] = useState(false)
+  const { totalIndirect, directWeight, shockCompany, shockPct, breakdown } = exposure
+  const sign = totalIndirect >= 0 ? '+' : ''
+  const pct = (totalIndirect * 100).toFixed(2)
+  const color = totalIndirect < -0.0005 ? 'text-red-400' : totalIndirect > 0.0005 ? 'text-green-400' : 'text-zinc-400'
+  const maxAbs = Math.max(...breakdown.map(b => Math.abs(b.contribution)), 0.0001)
+
+  return (
+    <div className="rounded-2xl card-appear" style={{ background: '#18181b', border: '1px solid #27272a' }}>
+      <div className="px-6 pt-5 pb-4 border-b border-zinc-800/70 flex items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2.5">
+          <span className="w-1 h-3.5 rounded-full bg-blue-500 opacity-80" />
+          <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Portfolio Exposure</p>
+        </div>
+        <Link href="/portfolio" className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors flex-shrink-0">
+          Edit holdings →
+        </Link>
+      </div>
+      <div className="px-6 py-4 flex flex-col gap-3">
+        {/* Headline */}
+        <div className="flex items-baseline gap-2">
+          <span className={`text-3xl font-black tabular-nums tracking-tight ${color}`}>
+            {sign}{pct}%
+          </span>
+          <span className="text-xs text-zinc-500">indirect portfolio impact</span>
+        </div>
+        <p className="text-xs text-zinc-500 leading-relaxed -mt-1">
+          From <span className="text-zinc-300">{shockCompany}</span> moving{' '}
+          <span className={shockPct < 0 ? 'text-red-400' : 'text-green-400'}>
+            {shockPct >= 0 ? '+' : ''}{(shockPct * 100).toFixed(0)}%
+          </span>
+          {' '}through supply chain relationships.
+        </p>
+
+        {directWeight > 0 && (
+          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-500/8 border border-amber-500/15">
+            <span className="text-amber-400 text-xs mt-0.5">⚠</span>
+            <p className="text-xs text-zinc-500 leading-relaxed">
+              You hold <span className="text-amber-300 font-semibold">{(directWeight * 100).toFixed(1)}%</span> of {shockCompany} directly — additional{' '}
+              <span className={shockPct < 0 ? 'text-red-400 font-semibold' : 'text-green-400 font-semibold'}>
+                {((directWeight * shockPct) * 100 >= 0 ? '+' : '')}{(directWeight * shockPct * 100).toFixed(2)}%
+              </span>{' '}direct impact not included above.
+            </p>
+          </div>
+        )}
+
+        {/* Breakdown */}
+        {expanded && (
+          <div className="flex flex-col gap-1 mt-1">
+            {breakdown.map((b, i) => {
+              const sector = COMPANY_SECTOR[b.resolvedName]
+              const sectorColor = sector ? SECTOR_COLORS[sector] : '#52525b'
+              const barW = maxAbs > 0 ? Math.abs(b.contribution) / maxAbs * 100 : 0
+              return (
+                <div key={i} className="flex flex-col gap-1 py-1.5 border-b border-zinc-800/40 last:border-0">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: sectorColor, opacity: b.inNetwork ? 1 : 0.3 }} />
+                    <span className={`text-xs flex-1 truncate ${b.inNetwork ? 'text-zinc-300' : 'text-zinc-600'}`}>{b.resolvedName}</span>
+                    <span className="text-[10px] text-zinc-600 font-mono">{(b.weight * 100).toFixed(1)}%</span>
+                    {b.isShockCompany
+                      ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400">shock</span>
+                      : !b.inNetwork
+                        ? <span className="text-[10px] text-zinc-700">—</span>
+                        : <span className={`text-[10px] font-mono font-semibold ${b.contribution < 0 ? 'text-red-400' : b.contribution > 0 ? 'text-green-400' : 'text-zinc-600'}`}>
+                            {b.contribution >= 0 ? '+' : ''}{(b.contribution * 100).toFixed(3)}%
+                          </span>
+                    }
+                  </div>
+                  {!b.isShockCompany && b.inNetwork && (
+                    <div className="flex items-center gap-2 pl-3.5">
+                      <div className="flex-1 h-0.5 bg-zinc-800 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${barW}%`, backgroundColor: b.contribution < 0 ? '#f87171' : '#4ade80' }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        <button
+          onClick={() => setExpanded(v => !v)}
+          className="self-start text-xs text-zinc-600 hover:text-blue-400 transition-colors underline underline-offset-2"
+        >
+          {expanded ? 'Show less ↑' : `Show breakdown (${breakdown.length}) →`}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Home() {
   const [mode, setMode] = useState<'manual' | 'natural'>(() => getAnalyzeState().mode)
 
@@ -223,6 +363,13 @@ export default function Home() {
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null)
   const [showCritical, setShowCritical] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
+  const [portfolioExposure, setPortfolioExposure] = useState<PortfolioExposure | null>(null)
+
+  // Recalculate portfolio exposure on mount (in case we navigated away and back)
+  useEffect(() => {
+    const saved = getAnalyzeState().results
+    if (saved) setPortfolioExposure(calcPortfolioExposure(saved))
+  }, [])
 
   // Persist state across route navigations
   useEffect(() => {
@@ -279,6 +426,7 @@ export default function Home() {
     setParsedCompany(null)
     setParsedPct(null)
     setReasoning(null)
+    setPortfolioExposure(null)
 
     try {
       let shock_company: string
@@ -324,6 +472,7 @@ export default function Home() {
       const graphData = data as unknown as Results
       setResults(graphData)
       fetchNarrative(graphData) // fire in background, don't await
+      setPortfolioExposure(calcPortfolioExposure(graphData))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -353,21 +502,11 @@ export default function Home() {
           <TremorIcon />
           <span className="text-base font-black tracking-tight text-zinc-100">TREMOR</span>
         </Link>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowHelp(true)}
-            className="w-7 h-7 flex items-center justify-center rounded-full border border-zinc-700 text-zinc-400 hover:text-zinc-100 hover:border-zinc-500 text-xs font-bold transition-colors bg-zinc-800/50"
-          >
-            ?
-          </button>
-          <div className="flex items-center gap-1 bg-zinc-800/50 border border-zinc-700/40 rounded-xl p-1">
-            <span className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-zinc-700 text-zinc-100">
-              Analysis
-            </span>
-            <Link href="/explore" className="px-3.5 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors">
-              Explore
-            </Link>
-          </div>
+        <div className="flex items-center gap-5">
+          <button onClick={() => setShowHelp(true)} className="w-7 h-7 flex items-center justify-center rounded-full border border-zinc-700 text-zinc-400 hover:text-zinc-100 hover:border-zinc-500 text-xs font-bold transition-colors bg-zinc-800/50">?</button>
+          <Link href="/portfolio" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Portfolio</Link>
+          <Link href="/explore" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Explore</Link>
+          <span className="text-xs font-semibold text-zinc-100">Analysis</span>
         </div>
       </nav>
 
@@ -428,6 +567,7 @@ export default function Home() {
             </div>
           )}
           <SectorBreakdown affected={results?.affected ?? []} />
+          {portfolioExposure && <PortfolioExposurePanel exposure={portfolioExposure} />}
           {results && (
             <NarrativeBox
               narrative={narrative}
