@@ -18,6 +18,7 @@ interface Props {
   highlightCompany?: string | null
   activeFilter?: string | null
   criticalNode?: string | null
+  focusCompany?: string | null
 }
 
 interface TooltipData { x: number; y: number; id: string }
@@ -48,6 +49,7 @@ export default function ExploreGraph({
   highlightCompany,
   activeFilter,
   criticalNode,
+  focusCompany,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const graphRef     = useRef<ForceGraphMethods | undefined>(undefined)
@@ -98,6 +100,15 @@ export default function ExploreGraph({
 
     fg.d3ReheatSimulation()
   }, [graphData])
+
+  // Zoom to focused company when it changes
+  useEffect(() => {
+    if (!focusCompany || !graphRef.current) return
+    const node = graphData.nodes.find(n => n.id === focusCompany) as { id: string; x?: number; y?: number } | undefined
+    if (!node || node.x == null || node.y == null) return
+    graphRef.current.centerAt(node.x, node.y, 800)
+    graphRef.current.zoom(4, 800)
+  }, [focusCompany, graphData.nodes])
 
   const sectorsPresent = useMemo(() => {
     const seen = new Set<string>()

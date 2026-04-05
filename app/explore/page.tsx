@@ -148,6 +148,7 @@ export default function ExplorePage() {
     debounceRef.current = setTimeout(() => {
       const match = nodes.find(n => n.name.toLowerCase().includes(val.toLowerCase()))
       setHighlighted(match?.name ?? null)
+      if (match) setSelectedCompany(match.name)
     }, 200)
   }
 
@@ -289,6 +290,7 @@ export default function ExplorePage() {
               highlightCompany={highlighted}
               activeFilter={activeFilter}
               criticalNode={showCritical ? criticalResult?.node ?? null : null}
+              focusCompany={highlighted}
             />
           )}
         </div>

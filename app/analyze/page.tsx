@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import AffectedPanel from '../components/AffectedPanel'
 import NarrativeBox from '../components/NarrativeBox'
 import ContagionGraph from '../components/ContagionGraph'
 import SectorBreakdown from '../components/SectorBreakdown'
 import CompanyDrawer from '../components/CompanyDrawer'
+import { getAnalyzeState, saveAnalyzeState } from '@/lib/analyzeStore'
+import type { AffectedCompany, Edge, Results } from '@/lib/analyzeStore'
 
 function TremorIcon() {
   return (
@@ -27,26 +29,6 @@ function TremorIcon() {
       <circle cx="24" cy="24" r="3"   fill="#eff6ff" />
     </svg>
   )
-}
-
-interface AffectedCompany {
-  company: string
-  exposure: number
-  hop: number
-}
-
-interface Edge {
-  from: string
-  to: string
-  rel_type: string
-  weight: number
-}
-
-interface Results {
-  shock_company: string
-  shock_pct: number
-  affected: AffectedCompany[]
-  edges: Edge[]
 }
 
 // ── Critical node algorithm (same as Explore page) ────────────────────────────
@@ -221,26 +203,31 @@ function PlaceholderGraph() {
 }
 
 export default function Home() {
-  const [mode, setMode] = useState<'manual' | 'natural'>('manual')
+  const [mode, setMode] = useState<'manual' | 'natural'>(() => getAnalyzeState().mode)
 
-  const [company, setCompany] = useState('')
-  const [shockPct, setShockPct] = useState(0)
+  const [company, setCompany] = useState(() => getAnalyzeState().company)
+  const [shockPct, setShockPct] = useState(() => getAnalyzeState().shockPct)
 
-  const [prompt, setPrompt] = useState('')
-  const [parsedCompany, setParsedCompany] = useState<string | null>(null)
-  const [parsedPct, setParsedPct] = useState<number | null>(null)
-  const [reasoning, setReasoning] = useState<string | null>(null)
+  const [prompt, setPrompt] = useState(() => getAnalyzeState().prompt)
+  const [parsedCompany, setParsedCompany] = useState<string | null>(() => getAnalyzeState().parsedCompany)
+  const [parsedPct, setParsedPct] = useState<number | null>(() => getAnalyzeState().parsedPct)
+  const [reasoning, setReasoning] = useState<string | null>(() => getAnalyzeState().reasoning)
 
   const [loading, setLoading] = useState(false)
-  const [results, setResults] = useState<Results | null>(null)
-  const [narrative, setNarrative] = useState<string | null>(null)
+  const [results, setResults] = useState<Results | null>(() => getAnalyzeState().results)
+  const [narrative, setNarrative] = useState<string | null>(() => getAnalyzeState().narrative)
   const [narrativeLoading, setNarrativeLoading] = useState(false)
-  const [deepNarrative, setDeepNarrative] = useState<string | null>(null)
+  const [deepNarrative, setDeepNarrative] = useState<string | null>(() => getAnalyzeState().deepNarrative)
   const [deepNarrativeLoading, setDeepNarrativeLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null)
   const [showCritical, setShowCritical] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
+
+  // Persist state across route navigations
+  useEffect(() => {
+    saveAnalyzeState({ mode, company, shockPct, prompt, parsedCompany, parsedPct, reasoning, results, narrative, deepNarrative })
+  }, [mode, company, shockPct, prompt, parsedCompany, parsedPct, reasoning, results, narrative, deepNarrative])
 
   const criticalResult = useMemo(() => {
     if (!results) return null
