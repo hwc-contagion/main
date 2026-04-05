@@ -50,14 +50,16 @@ export default function NarrativeBox({ narrative, loading, deepNarrative, deepLo
 
   return (
     <div
-      className="rounded-2xl p-5 flex gap-4 card-appear"
+      className="rounded-2xl card-appear"
       style={{ background: '#18181b', border: '1px solid #27272a' }}
     >
-      <div className="w-0.5 rounded-full bg-gradient-to-b from-blue-400 to-blue-600/30 flex-shrink-0 self-stretch" />
-      <div className="flex-1 min-w-0">
-        <h2 className="text-xs font-semibold text-blue-400/80 uppercase tracking-widest mb-2.5">
+      <div className="px-6 pt-5 pb-4 border-b border-zinc-800/70 flex items-center gap-2.5">
+        <span className="w-1 h-3.5 rounded-full bg-blue-500 opacity-80" />
+        <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
           Analyst Narrative
         </h2>
+      </div>
+      <div className="flex-1 min-w-0 px-6 py-5">
 
         {/* Short narrative or skeleton */}
         {loading ? (

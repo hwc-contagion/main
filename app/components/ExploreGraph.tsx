@@ -19,6 +19,7 @@ interface Props {
   activeFilter?: string | null
   criticalNode?: string | null
   focusCompany?: string | null
+  zoomResetTrigger?: number
 }
 
 interface TooltipData { x: number; y: number; id: string }
@@ -50,6 +51,7 @@ export default function ExploreGraph({
   activeFilter,
   criticalNode,
   focusCompany,
+  zoomResetTrigger,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const graphRef     = useRef<ForceGraphMethods | undefined>(undefined)
@@ -79,26 +81,34 @@ export default function ExploreGraph({
     links: edges.map(e => ({ source: e.from, target: e.to, weight: e.weight })),
   }), [nodes, edges, degreeMap])
 
-  // Configure forces once graph data is ready
+  // Configure forces once graph data is ready.
+  // Uses a retry loop because the ForceGraph2D dynamic import may not have
+  // mounted yet when this effect first fires (e.g. on a hard refresh).
   useEffect(() => {
-    const fg = graphRef.current
-    if (!fg || graphData.nodes.length === 0) return
+    if (graphData.nodes.length === 0) return
+    let cancelled = false
 
-    // Strong repulsion to push nodes apart
-    const charge = fg.d3Force('charge') as { strength: (v: number) => unknown } | undefined
-    charge?.strength(-320)
+    function configure() {
+      if (cancelled) return
+      const fg = graphRef.current
+      if (!fg) { setTimeout(configure, 50); return }
 
-    // Longer link distance so labels have room
-    const link = fg.d3Force('link') as { distance: (v: number) => unknown } | undefined
-    link?.distance(80)
+      const charge = fg.d3Force('charge') as { strength: (v: number) => unknown } | undefined
+      charge?.strength(-320)
 
-    // Collision radius = node radius + 28px label buffer
-    fg.d3Force('collision', forceCollide((node: unknown) => {
-      const n = node as { degree?: number }
-      return nodeRadius(n.degree ?? 1) + 10
-    }))
+      const link = fg.d3Force('link') as { distance: (v: number) => unknown } | undefined
+      link?.distance(80)
 
-    fg.d3ReheatSimulation()
+      fg.d3Force('collision', forceCollide((node: unknown) => {
+        const n = node as { degree?: number }
+        return nodeRadius(n.degree ?? 1) + 10
+      }))
+
+      fg.d3ReheatSimulation()
+    }
+
+    configure()
+    return () => { cancelled = true }
   }, [graphData])
 
   // Zoom to focused company when it changes
@@ -109,6 +119,12 @@ export default function ExploreGraph({
     graphRef.current.centerAt(node.x, node.y, 800)
     graphRef.current.zoom(4, 800)
   }, [focusCompany, graphData.nodes])
+
+  // Zoom back out to fit all nodes
+  useEffect(() => {
+    if (zoomResetTrigger == null || zoomResetTrigger === 0) return
+    graphRef.current?.zoomToFit(600, 60)
+  }, [zoomResetTrigger])
 
   const sectorsPresent = useMemo(() => {
     const seen = new Set<string>()

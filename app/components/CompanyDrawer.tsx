@@ -71,6 +71,13 @@ export default function CompanyDrawer({ company, exposure, onClose, onCompanyCli
   const open = company !== null
 
   useEffect(() => {
+    if (!open) return
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
+  useEffect(() => {
     if (!company) { setProfile(null); return }
     setLoading(true)
     setError(null)

@@ -126,7 +126,9 @@ export default function ExplorePage() {
   const [activeFilter, setActiveFilter] = useState<string | null>(null)
   const [showCritical, setShowCritical] = useState(false)
   const [showHelp, setShowHelp]         = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [zoomReset, setZoomReset]       = useState(0)
+  const debounceRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchOpenedRef = useRef(false)
 
   useEffect(() => {
     fetch('/api/graph')
@@ -148,7 +150,7 @@ export default function ExplorePage() {
     debounceRef.current = setTimeout(() => {
       const match = nodes.find(n => n.name.toLowerCase().includes(val.toLowerCase()))
       setHighlighted(match?.name ?? null)
-      if (match) setSelectedCompany(match.name)
+      if (match) { searchOpenedRef.current = true; setSelectedCompany(match.name) }
     }, 200)
   }
 
@@ -286,11 +288,12 @@ export default function ExplorePage() {
             <ExploreGraph
               nodes={nodes}
               edges={edges}
-              onNodeClick={setSelectedCompany}
+              onNodeClick={company => { searchOpenedRef.current = false; setSelectedCompany(company) }}
               highlightCompany={highlighted}
               activeFilter={activeFilter}
               criticalNode={showCritical ? criticalResult?.node ?? null : null}
               focusCompany={highlighted}
+              zoomResetTrigger={zoomReset}
             />
           )}
         </div>
@@ -312,8 +315,14 @@ export default function ExplorePage() {
       {/* Company drawer */}
       <CompanyDrawer
         company={selectedCompany}
-        onClose={() => setSelectedCompany(null)}
-        onCompanyClick={setSelectedCompany}
+        onClose={() => {
+          if (searchOpenedRef.current) {
+            searchOpenedRef.current = false
+            setZoomReset(n => n + 1)
+          }
+          setSelectedCompany(null)
+        }}
+        onCompanyClick={company => { searchOpenedRef.current = false; setSelectedCompany(company) }}
       />
 
       {/* Help modal */}
