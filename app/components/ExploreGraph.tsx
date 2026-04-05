@@ -17,6 +17,7 @@ interface Props {
   onNodeClick?: (company: string) => void
   highlightCompany?: string | null
   activeFilter?: string | null
+  criticalNode?: string | null
 }
 
 interface TooltipData { x: number; y: number; id: string }
@@ -46,6 +47,7 @@ export default function ExploreGraph({
   onNodeClick,
   highlightCompany,
   activeFilter,
+  criticalNode,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const graphRef     = useRef<ForceGraphMethods | undefined>(undefined)
@@ -165,22 +167,38 @@ export default function ExploreGraph({
           const r = nodeRadius(degree)
           const ring          = sectorColor(company)
           const isHighlighted = company === highlightCompany
+          const isCritical    = company === criticalNode
           const sector        = COMPANY_SECTOR[company]
           const isDimmed      = activeFilter != null && sector !== activeFilter
 
           ctx.globalAlpha = isDimmed ? 0.12 : 1
 
-          // Node fill
+          // Critical node: layered amber glow behind the node
+          if (isCritical && !isDimmed) {
+            const glows = [
+              { extra: 18 / globalScale, alpha: 0.05 },
+              { extra: 11 / globalScale, alpha: 0.12 },
+              { extra:  5 / globalScale, alpha: 0.22 },
+            ]
+            for (const g of glows) {
+              ctx.beginPath()
+              ctx.arc(x, y, r + g.extra, 0, 2 * Math.PI)
+              ctx.fillStyle = `rgba(245,158,11,${g.alpha})`
+              ctx.fill()
+            }
+          }
+
+          // Node fill — dark amber tint for critical, normal for others
           ctx.beginPath()
           ctx.arc(x, y, r, 0, 2 * Math.PI)
-          ctx.fillStyle = NODE_FILL
+          ctx.fillStyle = isCritical ? '#1c1408' : NODE_FILL
           ctx.fill()
 
-          // Sector ring
-          const ringWidth = (isHighlighted ? 4.5 : 3) / globalScale
+          // Ring — amber for critical, white for highlighted, sector color otherwise
+          const ringWidth = (isCritical ? 5 : isHighlighted ? 4.5 : 3) / globalScale
           ctx.beginPath()
           ctx.arc(x, y, r + ringWidth / 2, 0, 2 * Math.PI)
-          ctx.strokeStyle = isHighlighted ? '#ffffff' : (ring || '#a1a1aa')
+          ctx.strokeStyle = isCritical ? '#f59e0b' : isHighlighted ? '#ffffff' : (ring || '#a1a1aa')
           ctx.lineWidth = ringWidth
           ctx.stroke()
 
@@ -230,7 +248,7 @@ export default function ExploreGraph({
             ctx.closePath()
             ctx.fill()
 
-            ctx.fillStyle = isHighlighted ? '#ffffff' : '#d4d4d8'
+            ctx.fillStyle = isCritical ? '#fcd34d' : isHighlighted ? '#ffffff' : '#d4d4d8'
             ctx.textAlign    = 'left'
             ctx.textBaseline = 'top'
             ctx.fillText(company, ax + pad, ay + pad)

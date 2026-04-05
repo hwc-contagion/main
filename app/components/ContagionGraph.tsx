@@ -26,6 +26,7 @@ interface Props {
   affected: AffectedCompany[]
   edges: Edge[]
   onNodeClick?: (company: string) => void
+  criticalNode?: string | null
 }
 
 interface TooltipData {
@@ -77,7 +78,7 @@ const REL_TYPE_LABELS: Record<string, string> = {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-export default function ContagionGraph({ shockCompany, shockPct, affected, edges, onNodeClick }: Props) {
+export default function ContagionGraph({ shockCompany, shockPct, affected, edges, onNodeClick, criticalNode }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const graphRef = useRef<ForceGraphMethods | undefined>(undefined)
   const [width, setWidth] = useState(500)
@@ -244,8 +245,19 @@ export default function ContagionGraph({ shockCompany, shockPct, affected, edges
           const x = node.x ?? 0
           const y = node.y ?? 0
           const r = nodeRadius(hop, exposure)
-          const fillColor = hop === 0 ? CENTER_COLOR : NODE_FILL
-          const ringColor = hop > 0 ? sectorColor(node.id as string) : ''
+          const isCritical = String(node.id) === criticalNode
+          const fillColor  = hop === 0 ? CENTER_COLOR : (isCritical ? '#1c1408' : NODE_FILL)
+          const ringColor  = hop > 0 ? sectorColor(node.id as string) : ''
+
+          // Critical node: amber glow layers
+          if (isCritical) {
+            for (const [extra, alpha] of [[18/globalScale, 0.05], [11/globalScale, 0.12], [5/globalScale, 0.22]] as [number,number][]) {
+              ctx.beginPath()
+              ctx.arc(x, y, r + extra, 0, 2 * Math.PI)
+              ctx.fillStyle = `rgba(245,158,11,${alpha})`
+              ctx.fill()
+            }
+          }
 
           ctx.beginPath()
           ctx.arc(x, y, r, 0, 2 * Math.PI)
@@ -257,10 +269,10 @@ export default function ContagionGraph({ shockCompany, shockPct, affected, edges
             ctx.lineWidth = 2 / globalScale
             ctx.stroke()
           } else {
-            const ringWidth = 3.5 / globalScale
+            const ringWidth = (isCritical ? 5 : 3.5) / globalScale
             ctx.beginPath()
             ctx.arc(x, y, r + ringWidth / 2, 0, 2 * Math.PI)
-            ctx.strokeStyle = ringColor || '#a1a1aa'
+            ctx.strokeStyle = isCritical ? '#f59e0b' : (ringColor || '#a1a1aa')
             ctx.lineWidth = ringWidth
             ctx.stroke()
           }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import AffectedPanel from '../components/AffectedPanel'
 import NarrativeBox from '../components/NarrativeBox'
@@ -48,6 +48,77 @@ interface Results {
   affected: AffectedCompany[]
   edges: Edge[]
 }
+
+// ── Critical node algorithm (same as Explore page) ────────────────────────────
+function findCriticalNode(
+  nodeNames: string[],
+  edges: { from: string; to: string }[],
+): { node: string; disconnects: number } | null {
+  if (nodeNames.length < 3) return null
+  const adj = new Map<string, string[]>()
+  nodeNames.forEach(n => adj.set(n, []))
+  edges.forEach(e => {
+    adj.get(e.from)?.push(e.to)
+    adj.get(e.to)?.push(e.from)
+  })
+  function largestComponent(excluded: string): number {
+    const remaining = nodeNames.filter(n => n !== excluded)
+    if (!remaining.length) return 0
+    const visited = new Set<string>()
+    let largest = 0
+    for (const start of remaining) {
+      if (visited.has(start)) continue
+      const comp = new Set([start])
+      const q = [start]
+      while (q.length) {
+        const curr = q.shift()!
+        for (const nb of adj.get(curr) ?? []) {
+          if (nb !== excluded && !comp.has(nb)) { comp.add(nb); q.push(nb) }
+        }
+      }
+      comp.forEach(n => visited.add(n))
+      largest = Math.max(largest, comp.size)
+    }
+    return largest
+  }
+  const N = nodeNames.length
+  let best = { node: '', disconnects: 0 }
+  for (const name of nodeNames) {
+    const d = (N - 1) - largestComponent(name)
+    if (d > best.disconnects) best = { node: name, disconnects: d }
+  }
+  return best.disconnects > 0 ? best : null
+}
+
+// ── Help content ───────────────────────────────────────────────────────────────
+const ANALYZE_HELP = [
+  {
+    title: 'Running an analysis',
+    items: [
+      { label: 'Manual mode', desc: 'Enter a company name and drag the slider to set the earnings shock (negative = miss, positive = beat).' },
+      { label: 'Natural language', desc: 'Describe a hypothetical event in plain English — the AI parses the company and estimated shock magnitude.' },
+      { label: 'Run Analysis', desc: 'Executes the contagion model and propagates the shock through the supply chain graph up to 3 hops.' },
+    ],
+  },
+  {
+    title: 'Reading the graph',
+    items: [
+      { label: 'Node size', desc: 'Reflects earnings exposure magnitude — larger nodes are more affected by the shock.' },
+      { label: 'Ring color', desc: 'Each industry sector has a unique color shown as a ring around the node.' },
+      { label: 'Red / green', desc: 'Red nodes have negative exposure (hurt by the shock), green nodes benefit.' },
+      { label: 'Show slider', desc: 'Top-right slider controls how many companies are visible in the graph at once.' },
+      { label: 'Click a node', desc: 'Opens a company profile with its full supplier and customer list.' },
+    ],
+  },
+  {
+    title: 'Panels',
+    items: [
+      { label: 'Sector Exposure', desc: 'Average exposure per company, broken down by industry sector.' },
+      { label: 'Affected Companies', desc: 'Full ranked list of impacted companies with their supply chain path from the shock origin.' },
+      { label: 'Critical Node', desc: 'When toggled on, highlights the company in the current result set whose removal would disconnect the most others — the most structurally important node in the visible graph.' },
+    ],
+  },
+]
 
 // Placeholder network shown before any analysis is run.
 // To revert: delete this component and restore the old empty-state div.
@@ -165,6 +236,14 @@ export default function Home() {
   const [narrative, setNarrative] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null)
+  const [showCritical, setShowCritical] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
+
+  const criticalResult = useMemo(() => {
+    if (!results) return null
+    const nodeNames = [results.shock_company, ...results.affected.map(a => a.company)]
+    return findCriticalNode(nodeNames, results.edges)
+  }, [results])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -260,16 +339,21 @@ export default function Home() {
           <TremorIcon />
           <span className="text-base font-black tracking-tight text-zinc-100">TREMOR</span>
         </Link>
-        <div className="flex items-center gap-1 bg-zinc-800/50 border border-zinc-700/40 rounded-xl p-1">
-          <span className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-zinc-700 text-zinc-100">
-            Analysis
-          </span>
-          <Link
-            href="/explore"
-            className="px-3.5 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors"
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowHelp(true)}
+            className="w-7 h-7 flex items-center justify-center rounded-full border border-zinc-700 text-zinc-400 hover:text-zinc-100 hover:border-zinc-500 text-xs font-bold transition-colors bg-zinc-800/50"
           >
-            Explore
-          </Link>
+            ?
+          </button>
+          <div className="flex items-center gap-1 bg-zinc-800/50 border border-zinc-700/40 rounded-xl p-1">
+            <span className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-zinc-700 text-zinc-100">
+              Analysis
+            </span>
+            <Link href="/explore" className="px-3.5 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 transition-colors">
+              Explore
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -290,12 +374,46 @@ export default function Home() {
                   affected={results.affected}
                   edges={results.edges ?? []}
                   onNodeClick={setSelectedCompany}
+                  criticalNode={showCritical ? criticalResult?.node ?? null : null}
                 />
               </div>
             ) : (
               <PlaceholderGraph />
             )}
           </div>
+          {/* Critical Node toggle — only shown when results exist */}
+          {results && (
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => setShowCritical(v => !v)}
+                disabled={!criticalResult}
+                className={`flex items-center gap-1.5 self-start px-3 py-1.5 rounded-xl text-xs font-medium border transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
+                  showCritical
+                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+                    : 'border-zinc-700/50 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 bg-zinc-800/60'
+                }`}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M6 1l1.2 3.6H11L8.4 6.8l.9 3.4L6 8.4 2.7 10.2l.9-3.4L1 4.6h3.8L6 1z" fill="currentColor" opacity="0.9"/>
+                </svg>
+                Critical Node
+                {showCritical && criticalResult && (
+                  <span className="ml-0.5 text-amber-200 font-semibold">{criticalResult.node}</span>
+                )}
+              </button>
+              {showCritical && criticalResult && (
+                <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-amber-500/8 border border-amber-500/20">
+                  <div className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                  <p className="text-xs text-amber-200/80">
+                    <span className="font-semibold text-amber-300">{criticalResult.node}</span>
+                    {' '}is the most structurally critical node — removing it would disconnect{' '}
+                    <span className="font-semibold text-amber-300">{criticalResult.disconnects} {criticalResult.disconnects === 1 ? 'company' : 'companies'}</span>
+                    {' '}from the rest of this subgraph.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
           <SectorBreakdown affected={results?.affected ?? []} />
           {narrative && <NarrativeBox narrative={narrative} />}
         </div>
@@ -439,6 +557,49 @@ export default function Home() {
         onClose={() => setSelectedCompany(null)}
         onCompanyClick={setSelectedCompany}
       />
+
+      {/* Help modal */}
+      {showHelp && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" onClick={() => setShowHelp(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 pointer-events-none">
+            <div
+              className="w-full max-w-lg pointer-events-auto rounded-2xl border border-zinc-700/60 shadow-2xl overflow-hidden"
+              style={{ background: 'linear-gradient(160deg, #1c1c1f, #141416)' }}
+            >
+              <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-zinc-800">
+                <div>
+                  <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-0.5">Guide</p>
+                  <h2 className="text-lg font-black tracking-tight text-zinc-100">How to use Analysis</h2>
+                </div>
+                <button onClick={() => setShowHelp(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                  </svg>
+                </button>
+              </div>
+              <div className="px-6 py-5 flex flex-col gap-5 max-h-[70vh] overflow-y-auto">
+                {ANALYZE_HELP.map(section => (
+                  <div key={section.title}>
+                    <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest mb-2.5">{section.title}</p>
+                    <div className="flex flex-col gap-2">
+                      {section.items.map(item => (
+                        <div key={item.label} className="flex gap-3">
+                          <span className="text-xs font-semibold text-zinc-300 shrink-0 w-28 pt-0.5">{item.label}</span>
+                          <span className="text-xs text-zinc-500 leading-relaxed">{item.desc}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="px-6 py-3 border-t border-zinc-800">
+                <p className="text-[10px] text-zinc-600 text-center">Click anywhere outside to close</p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
