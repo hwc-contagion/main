@@ -36,7 +36,6 @@ interface EdgePopup {
 }
 
 const NODE_REL_SIZE = 4
-const MAX_VISIBLE_EDGES = 20
 
 function nodeVal(hop: number, exposure: number): number {
   return hop === 0 ? 28 : Math.max(3, Math.min(60, Math.abs(exposure) * 650))
@@ -83,16 +82,35 @@ const COMPANY_SECTOR: Record<string, string> = {
   LRCX:                'Semiconductors',
   ENTG:                'Semiconductors',
   GlobalFoundries:     'Semiconductors',
+  ADI:                 'Semiconductors',
+  MCHP:                'Semiconductors',
+  'NXP Semiconductors':'Semiconductors',
+  'Analog Devices':    'Semiconductors',
+  'Microchip Technology': 'Semiconductors',
+  'Marvell Technology':'Semiconductors',
+  'Monolithic Power':  'Semiconductors',
+  'Texas Instruments': 'Semiconductors',
+  'ON Semiconductor':  'Semiconductors',
+  Wolfspeed:           'Semiconductors',
   Boeing:              'Aerospace',
   'Spirit AeroSystems':'Aerospace',
   Airbus:              'Aerospace',
   RTX:                 'Aerospace',
   DCO:                 'Aerospace',
+  HXL:                 'Aerospace',
+  'Lockheed Martin':   'Aerospace',
+  'General Dynamics':  'Aerospace',
+  Textron:             'Aerospace',
+  GKN:                 'Aerospace',
+  'Triumph Group':     'Aerospace',
+  GE:                  'Industrials',
   Amazon:              'E-commerce',
   Meta:                'E-commerce',
   Google:              'E-commerce',
+  Microsoft:           'E-commerce',
   UPS:                 'Logistics',
   FedEx:               'Logistics',
+  Tesla:               'Automotive',
   Ford:                'Automotive',
   GM:                  'Automotive',
   'LG Energy Solution':'Automotive',
@@ -101,11 +119,20 @@ const COMPANY_SECTOR: Record<string, string> = {
   Autoliv:             'Automotive',
   BWA:                 'Automotive',
   APTV:                'Automotive',
+  Panasonic:           'Automotive',
+  CATL:                'Automotive',
+  'Samsung SDI':       'Automotive',
+  Toyota:              'Automotive',
+  BYD:                 'Automotive',
   CLS:                 'Tech',
   IBM:                 'Tech',
   Dell:                'Tech',
   HPE:                 'Tech',
+  'Super Micro':       'Tech',
+  'Arista Networks':   'Tech',
   Honeywell:           'Industrials',
+  Albemarle:           'Industrials',
+  'TE Connectivity':   'Industrials',
   'Applied Materials': 'Semiconductors',
   'Lam Research':      'Semiconductors',
 }
@@ -203,11 +230,9 @@ export default function ContagionGraph({ shockCompany, shockPct, affected, edges
     const hopOf: Record<string, number> = { [shockCompany]: 0 }
     topAffected.forEach(a => { hopOf[a.company] = a.hop })
 
-    // Keep only edges where both endpoints are visible; take top MAX_VISIBLE_EDGES by weight
+    // Keep all edges where both endpoints are visible
     const visibleEdges = edges
       .filter(e => nodeIds.has(e.from) && nodeIds.has(e.to))
-      .sort((a, b) => b.weight - a.weight)
-      .slice(0, MAX_VISIBLE_EDGES)
       .map(e => ({
         source: e.from,
         target: e.to,

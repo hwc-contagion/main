@@ -1,5 +1,6 @@
 import { Question } from "rocketride";
 import { rrClient, getParseShockToken, invalidateParseShockToken } from "@/lib/rocketride";
+import { resolveCompany } from "@/lib/company-aliases";
 
 export async function POST(request: Request) {
   let prompt: string;
@@ -48,7 +49,7 @@ Be realistic. A minor event is ±5-10%, a major event is ±20-40%, a catastrophi
   }
 
   return Response.json({
-    shock_company: parsed.shock_company,
+    shock_company: resolveCompany(parsed.shock_company),
     shock_pct: parsed.shock_pct,
     reasoning: parsed.reasoning ?? null,
   });

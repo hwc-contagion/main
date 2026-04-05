@@ -1,6 +1,7 @@
 import { runQuery } from "@/lib/neo4j";
 import { Question } from "rocketride";
 import { rrClient, getNarrativeToken, invalidateNarrativeToken } from "@/lib/rocketride";
+import { resolveCompany } from "@/lib/company-aliases";
 
 function toNumber(val: unknown): number {
   if (typeof val === "number") return val;
@@ -19,10 +20,9 @@ export async function POST(request: Request) {
       return Response.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const shock_company = body.shock_company;
     const shock_pct = body.shock_pct;
 
-    if (typeof shock_company !== "string" || !shock_company.trim()) {
+    if (typeof body.shock_company !== "string" || !body.shock_company.trim()) {
       return Response.json(
         { error: "shock_company must be a non-empty string" },
         { status: 400 }
@@ -34,6 +34,9 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    // Resolve alias → canonical Neo4j name (handles tickers, full names, variants)
+    const shock_company = resolveCompany(body.shock_company);
 
     const query = `
       MATCH path = (shock:Company {name: $shock_company})-[rels*1..3]-(affected:Company)

@@ -107,6 +107,65 @@ const CANONICAL_SUBSTRINGS: Array<[string, string]> = [
   ["toyota", "Toyota"],
   ["byd", "BYD"],
   ["lam research", "Lam Research"],
+  // Tesla
+  ["tesla, inc", "Tesla"],
+  ["tesla inc", "Tesla"],
+  ["tesla motors", "Tesla"],
+  ["tesla", "Tesla"],
+  // ON Semiconductor
+  ["on semiconductor", "ON Semiconductor"],
+  ["onsemi", "ON Semiconductor"],
+  // Wolfspeed
+  ["wolfspeed", "Wolfspeed"],
+  ["wolfspeed, inc", "Wolfspeed"],
+  // Monolithic Power
+  ["monolithic power systems", "Monolithic Power"],
+  ["monolithic power", "Monolithic Power"],
+  // Albemarle
+  ["albemarle", "Albemarle"],
+  ["albemarle corporation", "Albemarle"],
+  // TE Connectivity
+  ["te connectivity", "TE Connectivity"],
+  ["te connectivity ltd", "TE Connectivity"],
+  // NXP Semiconductors
+  ["nxp semiconductors", "NXP Semiconductors"],
+  ["nxp semiconductors nv", "NXP Semiconductors"],
+  ["nxp", "NXP Semiconductors"],
+  // Super Micro
+  ["super micro computer", "Super Micro"],
+  ["supermicro", "Super Micro"],
+  // Arista Networks
+  ["arista networks", "Arista Networks"],
+  ["arista networks, inc", "Arista Networks"],
+  // Hexcel
+  ["hexcel", "Hexcel"],
+  ["hexcel corporation", "Hexcel"],
+  // Spirit AeroSystems
+  ["spirit aerosystems", "Spirit AeroSystems"],
+  // Triumph Group
+  ["triumph group", "Triumph Group"],
+  ["triumph group, inc", "Triumph Group"],
+  // Microchip Technology
+  ["microchip technology", "Microchip Technology"],
+  ["microchip technology incorporated", "Microchip Technology"],
+  // Analog Devices
+  ["analog devices", "Analog Devices"],
+  ["analog devices, inc", "Analog Devices"],
+  ["analog devices inc", "Analog Devices"],
+  // Marvell Technology
+  ["marvell technology", "Marvell Technology"],
+  ["marvell technology, inc", "Marvell Technology"],
+  ["marvell", "Marvell Technology"],
+  // Microsoft
+  ["microsoft corporation", "Microsoft"],
+  ["microsoft corp", "Microsoft"],
+  ["microsoft", "Microsoft"],
+  // BMW
+  ["bmw", "BMW"],
+  ["bayerische motoren werke", "BMW"],
+  ["bmw ag", "BMW"],
+  // Ford
+  ["ford motor company", "Ford"],
 ];
 
 function applyCanonical(name: string): string {
@@ -121,9 +180,9 @@ function applyCanonical(name: string): string {
 
 const TICKERS = [
   // Apple component suppliers — very high concentration, almost always name Apple
-  "CRUS",  // Cirrus Logic      ~85% Apple
-  "SWKS",  // Skyworks          ~60% Apple (RF chips)
-  "QRVO",  // Qorvo             ~35% Apple (RF chips)
+  "CRUS",  // Cirrus Logic      ~89% Apple
+  "SWKS",  // Skyworks          ~59% Apple (RF chips)
+  "QRVO",  // Qorvo             ~47% Apple (RF chips)
   "JBL",   // Jabil             contract manufacturer, Apple exposure
   "AMKR",  // Amkor Technology  chip packaging, names Apple & Qualcomm
 
@@ -149,6 +208,29 @@ const TICKERS = [
   // Contract electronics
   "FLEX",  // Flex Ltd
   "CLS",   // Celestica
+
+  // ── NEW: Tesla / EV ecosystem ──────────────────────────────────────────────
+  "TSLA",  // Tesla itself — try for supplier names
+  "WOLF",  // Wolfspeed        SiC wafers for Tesla (Gigafactory supply agreement)
+  "ON",    // ON Semiconductor SiC modules, names Tesla/Ford/GM
+  "MPWR",  // Monolithic Power power mgmt ICs, names Tesla & Nvidia
+  "ALB",   // Albemarle        lithium, names Tesla & GM battery contracts
+  "TEL",   // TE Connectivity  connectors & sensors, names Tesla/Ford/GM
+  "NXPI",  // NXP Semiconductors auto MCUs, names Ford/BMW/Tesla (20-F)
+
+  // ── NEW: Cloud / hyperscaler suppliers ────────────────────────────────────
+  "SMCI",  // Super Micro Computer  server ODM, names Microsoft/Google/Meta/Amazon
+  "ANET",  // Arista Networks       data-center networking, names Microsoft/Meta/Google
+
+  // ── NEW: Aerospace additions ───────────────────────────────────────────────
+  "HXL",   // Hexcel            carbon-fiber composites, names Boeing & Airbus
+  "SPR",   // Spirit AeroSystems already in DB as node; scrape for upstream suppliers
+  "TGI",   // Triumph Group     aerostructures, names Boeing & Airbus
+
+  // ── NEW: Broader semiconductor / automotive ────────────────────────────────
+  "MCHP",  // Microchip Technology MCUs, names OEMs
+  "ADI",   // Analog Devices    mixed-signal, names auto/industrial OEMs
+  "MRVL",  // Marvell Technology networking ASICs, names cloud customers
 ];
 
 const USER_AGENT     = "tremor-scraper contact@example.com";
