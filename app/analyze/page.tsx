@@ -365,10 +365,15 @@ export default function Home() {
   const [showHelp, setShowHelp] = useState(false)
   const [portfolioExposure, setPortfolioExposure] = useState<PortfolioExposure | null>(null)
 
-  // Recalculate portfolio exposure on mount (in case we navigated away and back)
+  // On mount: recalculate portfolio exposure if results exist, or auto-run if company is set
   useEffect(() => {
-    const saved = getAnalyzeState().results
-    if (saved) setPortfolioExposure(calcPortfolioExposure(saved))
+    const saved = getAnalyzeState()
+    if (saved.results) {
+      setPortfolioExposure(calcPortfolioExposure(saved.results))
+    } else if (saved.company) {
+      runAnalysis(saved.company, saved.shockPct)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Persist state across route navigations
@@ -417,61 +422,30 @@ export default function Home() {
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function runAnalysis(shock_company: string, shock_pct_raw: number) {
+    if (!shock_company.trim()) return
     setLoading(true)
     setError(null)
     setNarrative(null)
     setDeepNarrative(null)
-    setParsedCompany(null)
-    setParsedPct(null)
-    setReasoning(null)
     setPortfolioExposure(null)
 
+    const shock_pct = shock_pct_raw / 100
+
     try {
-      let shock_company: string
-      let shock_pct: number
-
-      if (mode === 'natural') {
-        if (!prompt.trim()) return
-        const parseRes = await fetch('/api/parse-shock', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: prompt.trim() }),
-        })
-        const parseData = await parseRes.json()
-        if (!parseRes.ok) throw new Error(parseData.error ?? 'Failed to parse prompt')
-        shock_company = parseData.shock_company
-        shock_pct = parseData.shock_pct
-        setParsedCompany(shock_company)
-        setParsedPct(shock_pct)
-        setReasoning(parseData.reasoning ?? null)
-      } else {
-        if (!company.trim()) return
-        shock_company = company.trim()
-        shock_pct = shockPct / 100
-      }
-
       const res = await fetch('/api/contagion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shock_company, shock_pct }),
+        body: JSON.stringify({ shock_company: shock_company.trim(), shock_pct }),
       })
 
       let data: Record<string, unknown>
-      try {
-        data = await res.json()
-      } catch {
-        throw new Error(`Server error (${res.status})`)
-      }
-
-      if (!res.ok) {
-        throw new Error((data.error as string) ?? `Request failed (${res.status})`)
-      }
+      try { data = await res.json() } catch { throw new Error(`Server error (${res.status})`) }
+      if (!res.ok) throw new Error((data.error as string) ?? `Request failed (${res.status})`)
 
       const graphData = data as unknown as Results
       setResults(graphData)
-      fetchNarrative(graphData) // fire in background, don't await
+      fetchNarrative(graphData)
       setPortfolioExposure(calcPortfolioExposure(graphData))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -480,24 +454,21 @@ export default function Home() {
     }
   }
 
-  const canSubmit = mode === 'natural' ? prompt.trim().length > 0 : company.trim().length > 0
-
-  const shockColor =
-    shockPct > 0 ? 'text-green-400' :
-    shockPct < 0 ? 'text-red-400' :
-    'text-zinc-500'
-
   return (
     <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
 
       {/* ── Top hairline ── */}
       <div
         className="hairline-breathe fixed top-0 left-0 right-0 z-50 pointer-events-none"
-        style={{ height: 1, background: 'linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.4) 20%, rgba(59,130,246,0.8) 50%, rgba(59,130,246,0.4) 80%, transparent 100%)' }}
+        style={{ height: 1, background: 'linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.35) 20%, rgba(59,130,246,0.85) 50%, rgba(59,130,246,0.35) 80%, transparent 100%)' }}
       />
 
+      {/* Ambient */}
+      <div className="pointer-events-none fixed inset-0" style={{ zIndex: 0, background: 'radial-gradient(ellipse 60% 45% at 50% 20%, rgba(59,130,246,0.06) 0%, transparent 70%)' }} />
+
       {/* ── Nav ── */}
-      <nav className="sticky top-0 z-20 flex items-center justify-between px-8 py-4 shrink-0 border-b border-zinc-800/60 backdrop-blur-md bg-black/80">
+      <nav className="sticky top-0 z-20 flex items-center justify-between px-8 py-4 shrink-0 border-b border-zinc-800/50 backdrop-blur-md"
+        style={{ background: 'rgba(0,0,0,0.85)', boxShadow: '0 1px 0 rgba(59,130,246,0.06), 0 4px 20px rgba(0,0,0,0.5)' }}>
         <Link href="/" className="flex items-center gap-2.5 group">
           <TremorIcon />
           <span className="text-base font-black tracking-tight text-zinc-100">TREMOR</span>
@@ -505,6 +476,7 @@ export default function Home() {
         <div className="flex items-center gap-5">
           <button onClick={() => setShowHelp(true)} className="w-7 h-7 flex items-center justify-center rounded-full border border-zinc-700 text-zinc-400 hover:text-zinc-100 hover:border-zinc-500 text-xs font-bold transition-colors bg-zinc-800/50">?</button>
           <Link href="/portfolio" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Portfolio</Link>
+          <Link href="/shock" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Shock</Link>
           <Link href="/explore" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Explore</Link>
           <span className="text-xs font-semibold text-zinc-100">Analysis</span>
         </div>
@@ -516,7 +488,8 @@ export default function Home() {
         {/* Left — graph + breakdowns */}
         <div className="lg:w-1/2 flex flex-col gap-4 lg:sticky lg:top-[73px] lg:self-start">
           <div
-            className="rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800"
+            className="rounded-2xl overflow-hidden"
+            style={{ background: '#111114', border: '1px solid rgba(59,130,246,0.1)', boxShadow: '0 0 0 1px rgba(255,255,255,0.02) inset, 0 8px 40px rgba(0,0,0,0.6)' }}
           >
             {results ? (
               <div className="graph-appear">
@@ -567,7 +540,6 @@ export default function Home() {
             </div>
           )}
           <SectorBreakdown affected={results?.affected ?? []} />
-          {portfolioExposure && <PortfolioExposurePanel exposure={portfolioExposure} />}
           {results && (
             <NarrativeBox
               narrative={narrative}
@@ -579,131 +551,42 @@ export default function Home() {
           )}
         </div>
 
-        {/* Right — controls + results */}
+        {/* Right — results */}
         <div className="lg:w-1/2 flex flex-col gap-4">
 
-          {/* Form card */}
-          <form
-            onSubmit={handleSubmit}
-            className="flex flex-col gap-5 rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800"
-          >
-            {/* Card header strip */}
-            <div className="px-6 pt-5 pb-4 border-b border-zinc-800/70 flex items-center gap-2.5">
-              <span className="w-1 h-3.5 rounded-full bg-blue-500 opacity-80" />
-              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Configure shock</p>
-            </div>
-
-            <div className="px-6 pb-6 flex flex-col gap-5">
-              {/* Mode toggle */}
-              <div className="flex rounded-xl overflow-hidden border border-zinc-700/50 text-sm font-medium bg-zinc-800/50">
-                <button
-                  type="button"
-                  onClick={() => setMode('manual')}
-                  className={`flex-1 py-2.5 transition-all duration-150 ${mode === 'manual' ? 'bg-zinc-100 text-zinc-900 font-semibold' : 'text-zinc-400 hover:text-zinc-200'}`}
-                >
-                  Manual
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMode('natural')}
-                  className={`flex-1 py-2.5 transition-all duration-150 ${mode === 'natural' ? 'bg-zinc-100 text-zinc-900 font-semibold' : 'text-zinc-400 hover:text-zinc-200'}`}
-                >
-                  Natural Language
-                </button>
-              </div>
-
-              {mode === 'manual' ? (
-                <>
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="company" className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
-                      Company
-                    </label>
-                    <input
-                      id="company"
-                      type="text"
-                      placeholder="e.g. Apple, Boeing, Tesla"
-                      value={company}
-                      onChange={(e) => setCompany(e.target.value)}
-                      className="bg-zinc-800/60 border border-zinc-700/60 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/30 transition-all text-sm"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="shock" className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
-                      Earnings shock —{' '}
-                      <span className={`font-bold normal-case ${shockColor}`}>
-                        {shockPct > 0 ? '+' : ''}{shockPct}%
-                      </span>
-                    </label>
-                    <input
-                      id="shock"
-                      type="range"
-                      min={-100}
-                      max={100}
-                      value={shockPct}
-                      onChange={(e) => setShockPct(Number(e.target.value))}
-                      className="accent-blue-500"
-                    />
-                    <div className="flex justify-between text-xs text-zinc-600">
-                      <span>−100%</span>
-                      <span>0</span>
-                      <span>+100%</span>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="prompt" className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
-                    Describe the event
-                  </label>
-                  <textarea
-                    id="prompt"
-                    rows={3}
-                    placeholder="e.g. An earthquake destroyed Apple's main factory in Taiwan"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    className="bg-zinc-800/60 border border-zinc-700/60 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/30 transition-all resize-none text-sm"
-                  />
-                  {parsedCompany !== null && parsedPct !== null && (
-                    <div className="text-xs bg-zinc-800/60 border border-zinc-700/50 rounded-xl px-4 py-3 flex flex-col gap-1">
-                      <div>
-                        <span className="text-zinc-500">Parsed: </span>
-                        <span className="text-zinc-100 font-semibold">{parsedCompany}</span>
-                        {' '}
-                        <span className={`font-mono font-semibold ${parsedPct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {parsedPct >= 0 ? '+' : ''}{(parsedPct * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                      {reasoning && <p className="text-zinc-500">{reasoning}</p>}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading || !canSubmit}
-                className="bg-blue-500 hover:bg-blue-400 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors rounded-xl px-6 py-3 font-semibold text-sm text-white"
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="w-3.5 h-3.5 border-2 border-blue-300/30 border-t-blue-200 rounded-full animate-spin" />
-                    Analyzing…
+          {/* Scenario card */}
+          <div className="rounded-2xl px-5 py-3.5 flex items-center justify-between gap-4"
+            style={{ background: 'linear-gradient(135deg, #18181b, #141416)', border: '1px solid rgba(59,130,246,0.12)', boxShadow: '0 1px 0 rgba(255,255,255,0.03) inset, 0 2px 12px rgba(0,0,0,0.5)' }}>
+            {results || loading ? (
+              <>
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="w-1 h-3.5 rounded-full bg-blue-500 opacity-80 flex-shrink-0" />
+                  <span className="text-sm font-semibold text-zinc-100 truncate">{results?.shock_company ?? company}</span>
+                  <span className={`text-sm font-mono font-semibold flex-shrink-0 ${(results?.shock_pct ?? shockPct / 100) < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                    {((results?.shock_pct ?? shockPct / 100) >= 0 ? '+' : '')}{((results?.shock_pct ?? shockPct / 100) * 100).toFixed(0)}%
                   </span>
-                ) : 'Run Analysis'}
-              </button>
+                  {loading && <span className="w-3.5 h-3.5 border-2 border-zinc-700 border-t-blue-400 rounded-full animate-spin flex-shrink-0" />}
+                </div>
+                <Link href="/shock" className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors flex-shrink-0">Change →</Link>
+              </>
+            ) : (
+              <div className="flex items-center justify-between w-full">
+                <span className="text-xs text-zinc-600">No scenario configured</span>
+                <Link href="/shock" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">Configure →</Link>
+              </div>
+            )}
+          </div>
 
-              {error && (
-                <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>
-              )}
-            </div>
-          </form>
+          {error && (
+            <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">{error}</p>
+          )}
 
           <AffectedPanel
             shockCompany={results?.shock_company ?? ''}
             affected={results?.affected ?? []}
             edges={results?.edges ?? []}
           />
+          {portfolioExposure && <PortfolioExposurePanel exposure={portfolioExposure} />}
         </div>
       </div>
 

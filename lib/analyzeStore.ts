@@ -31,6 +31,8 @@ interface AnalyzeState {
   deepNarrative: string | null
 }
 
+const STORAGE_KEY = 'tremor_analyze'
+
 const defaultState: AnalyzeState = {
   mode: 'manual',
   company: '',
@@ -44,7 +46,21 @@ const defaultState: AnalyzeState = {
   deepNarrative: null,
 }
 
-let store: AnalyzeState = { ...defaultState }
+function load(): AnalyzeState {
+  if (typeof window === 'undefined') return { ...defaultState }
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY)
+    return raw ? { ...defaultState, ...JSON.parse(raw) } : { ...defaultState }
+  } catch { return { ...defaultState } }
+}
+
+let store: AnalyzeState = load()
 
 export function getAnalyzeState(): AnalyzeState { return store }
-export function saveAnalyzeState(s: Partial<AnalyzeState>) { store = { ...store, ...s } }
+
+export function saveAnalyzeState(s: Partial<AnalyzeState>) {
+  store = { ...store, ...s }
+  if (typeof window !== 'undefined') {
+    try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(store)) } catch { /* ignore */ }
+  }
+}

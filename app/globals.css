@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #f4f4f5;
+  --accent: #3b82f6;
 }
 
 @theme inline {
@@ -12,20 +13,41 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ── Base ── */
 body {
   background: #000;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Subtle dot grid atmosphere */
+  background-image: radial-gradient(circle, rgba(59,130,246,0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
 }
 
+/* ── Noise grain overlay ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.032;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
 
+/* ── Text selection ── */
+::selection {
+  background: rgba(59, 130, 246, 0.3);
+  color: #dbeafe;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #52525b; }
 
 /* ── Hide number input spinners ── */
 input[type=number]::-webkit-outer-spin-button,
@@ -37,27 +59,66 @@ input[type=number] { -moz-appearance: textfield; }
 
 /* ── Appear animations ── */
 @keyframes graph-zoom-in {
-  from { opacity: 0; transform: scale(0.95); }
+  from { opacity: 0; transform: scale(0.97); }
   to   { opacity: 1; transform: scale(1); }
 }
 .graph-appear {
-  animation: graph-zoom-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: graph-zoom-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes card-fade-up {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .card-appear {
-  animation: card-fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: card-fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* ── Aura: hairline pulse ── */
+/* ── Hairline breathe ── */
 @keyframes hairline-breathe {
-  0%, 100% { opacity: 0.7; }
+  0%, 100% { opacity: 0.55; }
   50%       { opacity: 1; }
 }
 .hairline-breathe {
-  animation: hairline-breathe 3s ease-in-out infinite;
+  animation: hairline-breathe 4s ease-in-out infinite;
 }
 
+/* ── Shimmer (loading states) ── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, #27272a 25%, #3f3f46 50%, #27272a 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+/* ── Data pulse ── */
+@keyframes data-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+.data-pulse {
+  animation: data-pulse 1.6s ease-in-out infinite;
+}
+
+/* ── Float (ambient orbs) ── */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  33%       { transform: translateY(-18px) translateX(8px); }
+  66%       { transform: translateY(10px) translateX(-6px); }
+}
+.float-slow { animation: float-slow 14s ease-in-out infinite; }
+
+@keyframes float-slower {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  40%       { transform: translateY(14px) translateX(-10px); }
+  70%       { transform: translateY(-10px) translateX(12px); }
+}
+.float-slower { animation: float-slower 20s ease-in-out infinite; }
+
+/* ── Nav bottom edge glow ── */
+.nav-glow {
+  box-shadow: 0 1px 0 rgba(59,130,246,0.08), 0 4px 24px rgba(0,0,0,0.6);
+}

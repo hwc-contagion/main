@@ -55,11 +55,11 @@ export default function PortfolioSetupPage() {
 
   function handleContinue() {
     setHoldings(holdings)
-    router.push('/analyze')
+    router.push('/shock')
   }
 
   function handleSkip() {
-    router.push('/analyze')
+    router.push('/shock')
   }
 
   const totalWeight = holdings.reduce((s, h) => s + (parseFloat(h.weight) || 0), 0)
@@ -71,14 +71,16 @@ export default function PortfolioSetupPage() {
       {/* Hairline */}
       <div
         className="hairline-breathe fixed top-0 left-0 right-0 z-50 pointer-events-none"
-        style={{ height: 1, background: 'linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.4) 20%, rgba(59,130,246,0.8) 50%, rgba(59,130,246,0.4) 80%, transparent 100%)' }}
+        style={{ height: 1, background: 'linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.35) 20%, rgba(59,130,246,0.85) 50%, rgba(59,130,246,0.35) 80%, transparent 100%)' }}
       />
 
       {/* Ambient */}
-      <div className="pointer-events-none fixed inset-0" style={{ zIndex: 0, background: 'radial-gradient(ellipse 55% 50% at 50% 40%, rgba(59,130,246,0.07) 0%, transparent 65%)' }} />
+      <div className="pointer-events-none fixed inset-0" style={{ zIndex: 0, background: 'radial-gradient(ellipse 55% 50% at 50% 35%, rgba(59,130,246,0.07) 0%, transparent 65%)' }} />
+      <div className="float-slower pointer-events-none fixed" style={{ bottom: '10%', left: '-5%', width: 360, height: 360, zIndex: 0, background: 'radial-gradient(circle, rgba(59,130,246,0.05) 0%, transparent 70%)', filter: 'blur(40px)' }} />
 
       {/* Nav */}
-      <nav className="relative z-10 flex items-center justify-between px-8 py-4 border-b border-zinc-800/60">
+      <nav className="relative z-10 flex items-center justify-between px-8 py-4 border-b border-zinc-800/50"
+        style={{ boxShadow: '0 1px 0 rgba(59,130,246,0.06)' }}>
         <Link href="/" className="flex items-center gap-2.5">
           <TremorIcon />
           <span className="text-base font-black tracking-tight text-zinc-100">TREMOR</span>
@@ -86,6 +88,7 @@ export default function PortfolioSetupPage() {
         <div className="flex items-center gap-5">
           <button onClick={() => setShowHelp(true)} className="w-7 h-7 flex items-center justify-center rounded-full border border-zinc-700 text-zinc-400 hover:text-zinc-100 hover:border-zinc-500 text-xs font-bold transition-colors bg-zinc-800/50">?</button>
           <span className="text-xs font-semibold text-zinc-100">Portfolio</span>
+          <Link href="/shock" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Shock</Link>
           <Link href="/explore" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Explore</Link>
           <Link href="/analyze" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Analysis</Link>
         </div>
@@ -105,7 +108,7 @@ export default function PortfolioSetupPage() {
           </div>
 
           {/* Holdings card */}
-          <div className="rounded-2xl bg-zinc-900 border border-zinc-800 overflow-hidden">
+          <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(160deg, #18181b, #111114)', border: '1px solid rgba(59,130,246,0.1)', boxShadow: '0 1px 0 rgba(255,255,255,0.03) inset, 0 4px 32px rgba(0,0,0,0.5)' }}>
             <div className="px-5 pt-4 pb-3.5 border-b border-zinc-800/70 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <span className="w-1 h-3.5 rounded-full bg-blue-500 opacity-80" />
@@ -177,9 +180,10 @@ export default function PortfolioSetupPage() {
             <button
               onClick={handleContinue}
               disabled={validCount === 0}
-              className="w-full flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-400 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors rounded-xl px-6 py-3.5 font-semibold text-sm text-white"
+              className="w-full flex items-center justify-center gap-2 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed transition-all rounded-xl px-6 py-3.5 font-semibold text-sm text-white"
+              style={validCount > 0 ? { background: 'linear-gradient(135deg, #3b82f6, #2563eb)', boxShadow: '0 0 0 1px rgba(59,130,246,0.3), 0 4px 16px rgba(59,130,246,0.2), 0 1px 0 rgba(255,255,255,0.1) inset' } : {}}
             >
-              Continue to Analysis
+              Configure Shock
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
@@ -188,7 +192,7 @@ export default function PortfolioSetupPage() {
               onClick={handleSkip}
               className="w-full text-center text-xs text-zinc-600 hover:text-zinc-400 transition-colors py-1"
             >
-              Skip — go straight to analysis
+              Skip — set up shock scenario
             </button>
           </div>
 
@@ -221,7 +225,7 @@ export default function PortfolioSetupPage() {
                   { label: 'Company or ticker', desc: 'Enter any company name or ticker symbol — e.g. Apple, TSLA, NVDA. TREMOR resolves them automatically.' },
                   { label: 'Weight %', desc: 'The percentage of your portfolio this holding represents. Weights don\'t have to sum to 100% — you can track just a subset.' },
                   { label: 'Portfolio exposure', desc: 'Once you run an analysis, TREMOR multiplies each holding\'s supply chain exposure by its weight to show your total indirect portfolio impact.' },
-                  { label: 'Skip', desc: 'You can skip portfolio setup and go straight to analysis. You can always come back to add holdings later.' },
+                  { label: 'Skip', desc: 'Skip portfolio setup and go straight to configuring your shock scenario. You can always come back to add holdings later.' },
                 ].map(item => (
                   <div key={item.label} className="flex gap-3">
                     <span className="text-xs font-semibold text-zinc-300 shrink-0 w-32 pt-0.5">{item.label}</span>
