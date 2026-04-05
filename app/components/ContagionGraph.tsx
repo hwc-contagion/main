@@ -65,8 +65,8 @@ function ringPositions(
   })
 }
 
-const NEG_COLORS = ['#f1f5f9', '#ef4444', '#f87171', '#fca5a5']
-const POS_COLORS = ['#f1f5f9', '#22c55e', '#4ade80', '#86efac']
+const CENTER_COLOR = '#f1f5f9'
+const NODE_FILL = '#1c1c1f'
 
 
 const REL_TYPE_LABELS: Record<string, string> = {
@@ -86,7 +86,6 @@ export default function ContagionGraph({ shockCompany, shockPct, affected, edges
   const [tooltip, setTooltip] = useState<TooltipData | null>(null)
   const HEIGHT = 520
   const isNeg = shockPct < 0
-  const palette = isNeg ? NEG_COLORS : POS_COLORS
 
   useEffect(() => {
     const el = containerRef.current
@@ -236,7 +235,7 @@ export default function ContagionGraph({ shockCompany, shockPct, affected, edges
         backgroundColor="#09090b"
         nodeRelSize={NODE_REL_SIZE}
         nodeVal={node => nodeVal(node.hop as number, node.exposure as number)}
-        nodeColor={node => palette[node.hop as number] ?? '#71717a'}
+        nodeColor={node => (node.hop as number) === 0 ? CENTER_COLOR : NODE_FILL}
         nodeLabel=""
         nodeCanvasObjectMode={() => 'replace'}
         nodeCanvasObject={(node, ctx, globalScale) => {
@@ -245,7 +244,7 @@ export default function ContagionGraph({ shockCompany, shockPct, affected, edges
           const x = node.x ?? 0
           const y = node.y ?? 0
           const r = nodeRadius(hop, exposure)
-          const fillColor = palette[hop] ?? '#71717a'
+          const fillColor = hop === 0 ? CENTER_COLOR : NODE_FILL
           const ringColor = hop > 0 ? sectorColor(node.id as string) : ''
 
           ctx.beginPath()
@@ -253,18 +252,16 @@ export default function ContagionGraph({ shockCompany, shockPct, affected, edges
           ctx.fillStyle = fillColor
           ctx.fill()
 
-          if (ringColor) {
-            const ringWidth = 2.5 / globalScale
-            ctx.beginPath()
-            ctx.arc(x, y, r + ringWidth / 2, 0, 2 * Math.PI)
-            ctx.strokeStyle = ringColor
-            ctx.lineWidth = ringWidth
-            ctx.stroke()
-          }
-
           if (hop === 0) {
             ctx.strokeStyle = 'rgba(255,255,255,0.25)'
             ctx.lineWidth = 2 / globalScale
+            ctx.stroke()
+          } else {
+            const ringWidth = 3.5 / globalScale
+            ctx.beginPath()
+            ctx.arc(x, y, r + ringWidth / 2, 0, 2 * Math.PI)
+            ctx.strokeStyle = ringColor || '#a1a1aa'
+            ctx.lineWidth = ringWidth
             ctx.stroke()
           }
 

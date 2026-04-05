@@ -22,6 +22,8 @@ const PHANTOM_WIDTHS: Record<string, number> = {
   'E-commerce': 68,
   'Logistics': 38,
   'Automotive': 61,
+  'Tech': 55,
+  'Industrials': 44,
 }
 
 export default function SectorBreakdown({ affected }: Props) {

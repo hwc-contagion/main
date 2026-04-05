@@ -159,6 +159,9 @@ export default function AffectedPanel({ shockCompany, affected, edges }: Props) 
                         {i > 0 && (
                           <span className="text-zinc-700 text-[10px] select-none shrink-0">›</span>
                         )}
+                        {i === chain.length - 1 && dot && (
+                          <span className="w-1.5 h-1.5 rounded-full shrink-0 inline-block" style={{ backgroundColor: dot }} />
+                        )}
                         <span className={`text-xs font-medium truncate leading-none ${
                           i === 0
                             ? 'text-blue-400 shrink-0'
@@ -171,14 +174,6 @@ export default function AffectedPanel({ shockCompany, affected, edges }: Props) 
                       </span>
                     ))}
                   </div>
-
-                  {/* Sector dot */}
-                  {dot && (
-                    <div
-                      className="w-1.5 h-1.5 rounded-full shrink-0"
-                      style={{ backgroundColor: dot }}
-                    />
-                  )}
 
                   {/* Exposure + bar */}
                   <div className="flex flex-col items-end shrink-0 gap-1">

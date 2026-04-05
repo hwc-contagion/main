@@ -196,7 +196,7 @@ export default function CompanyDrawer({ company, exposure, onClose, onCompanyCli
                   <p className="text-xs text-zinc-600 italic">None on record</p>
                 ) : (
                   <ul className="divide-y-0">
-                    {profile.customers.map(n => <NeighborRow key={n.name} n={n} />)}
+                    {profile.customers.map(n => <NeighborRow key={n.name} n={n} onClick={name => onCompanyClick?.(name)} />)}
                   </ul>
                 )}
               </section>

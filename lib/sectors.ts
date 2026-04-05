@@ -69,14 +69,14 @@ export const COMPANY_SECTOR: Record<string, string> = {
 }
 
 export const SECTOR_COLORS: Record<string, string> = {
-  'Consumer Tech': '#818cf8',
-  Semiconductors:  '#a78bfa',
-  Aerospace:       '#60a5fa',
-  'E-commerce':    '#f59e0b',
-  Logistics:       '#34d399',
-  Automotive:      '#f87171',
-  Tech:            '#38bdf8',
-  Industrials:     '#fb923c',
+  'Consumer Tech': '#f472b6',  // pink
+  Semiconductors:  '#a78bfa',  // violet
+  Aerospace:       '#38bdf8',  // sky blue
+  'E-commerce':    '#facc15',  // yellow
+  Logistics:       '#34d399',  // emerald
+  Automotive:      '#f87171',  // red
+  Tech:            '#fb923c',  // orange
+  Industrials:     '#a3e635',  // lime
 }
 
 export const SECTOR_ORDER = [
