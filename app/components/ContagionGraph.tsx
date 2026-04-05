@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic'
 import { useMemo, useEffect, useRef, useState } from 'react'
 import type { ForceGraphMethods } from 'react-force-graph-2d'
+import { COMPANY_SECTOR, SECTOR_COLORS, SECTOR_ORDER, sectorColor, sectorBadge } from '@/lib/sectors'
 
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false })
 
@@ -24,15 +25,15 @@ interface Props {
   shockPct: number
   affected: AffectedCompany[]
   edges: Edge[]
+  onNodeClick?: (company: string) => void
 }
 
-interface EdgePopup {
+interface TooltipData {
   x: number
   y: number
-  from: string
-  to: string
-  relType: string
-  weight: number
+  id: string
+  hop: number
+  exposure: number
 }
 
 const NODE_REL_SIZE = 4
@@ -44,7 +45,8 @@ function nodeRadius(hop: number, exposure: number): number {
   return Math.sqrt(nodeVal(hop, exposure)) * NODE_REL_SIZE
 }
 
-// Compute ring positions with generous label padding so nothing overlaps
+// Compute ring positions. Per-node arc is estimated from label text width
+// so the ring expands to fit long names rather than using a fixed constant.
 function ringPositions(
   nodes: AffectedCompany[],
   minRadius: number,
@@ -53,9 +55,10 @@ function ringPositions(
   if (n === 0) return []
   if (n === 1) return [{ fx: 0, fy: -minRadius }]
   const maxR = Math.max(...nodes.map(a => nodeRadius(a.hop, a.exposure)))
-  // 100px gap per node accounts for label text extending outside the circle
-  const circumferenceNeeded = n * (maxR * 2 + 100)
-  const r = Math.max(minRadius, circumferenceNeeded / (2 * Math.PI))
+  // ~7.5px per char at 11px font; add 40px margin around the label
+  const maxLabelPx = Math.max(...nodes.map(a => a.company.length * 7.5))
+  const perNodeArc = maxR * 2 + maxLabelPx + 40
+  const r = Math.max(minRadius, (n * perNodeArc) / (2 * Math.PI))
   return nodes.map((_, i) => {
     const angle = (2 * Math.PI * i) / n - Math.PI / 2
     return { fx: Math.cos(angle) * r, fy: Math.sin(angle) * r }
@@ -65,98 +68,6 @@ function ringPositions(
 const NEG_COLORS = ['#f1f5f9', '#ef4444', '#f87171', '#fca5a5']
 const POS_COLORS = ['#f1f5f9', '#22c55e', '#4ade80', '#86efac']
 
-// ── Sector mapping ─────────────────────────────────────────────────────────────
-
-const COMPANY_SECTOR: Record<string, string> = {
-  Apple:               'Consumer Tech',
-  TSMC:                'Semiconductors',
-  ASML:                'Semiconductors',
-  Qualcomm:            'Semiconductors',
-  Broadcom:            'Semiconductors',
-  Samsung:             'Semiconductors',
-  Nvidia:              'Semiconductors',
-  CRUS:                'Semiconductors',
-  SWKS:                'Semiconductors',
-  QRVO:                'Semiconductors',
-  AMKR:                'Semiconductors',
-  LRCX:                'Semiconductors',
-  ENTG:                'Semiconductors',
-  GlobalFoundries:     'Semiconductors',
-  ADI:                 'Semiconductors',
-  MCHP:                'Semiconductors',
-  'NXP Semiconductors':'Semiconductors',
-  'Analog Devices':    'Semiconductors',
-  'Microchip Technology': 'Semiconductors',
-  'Marvell Technology':'Semiconductors',
-  'Monolithic Power':  'Semiconductors',
-  'Texas Instruments': 'Semiconductors',
-  'ON Semiconductor':  'Semiconductors',
-  Wolfspeed:           'Semiconductors',
-  Boeing:              'Aerospace',
-  'Spirit AeroSystems':'Aerospace',
-  Airbus:              'Aerospace',
-  RTX:                 'Aerospace',
-  DCO:                 'Aerospace',
-  HXL:                 'Aerospace',
-  'Lockheed Martin':   'Aerospace',
-  'General Dynamics':  'Aerospace',
-  Textron:             'Aerospace',
-  GKN:                 'Aerospace',
-  'Triumph Group':     'Aerospace',
-  GE:                  'Industrials',
-  Amazon:              'E-commerce',
-  Meta:                'E-commerce',
-  Google:              'E-commerce',
-  Microsoft:           'E-commerce',
-  UPS:                 'Logistics',
-  FedEx:               'Logistics',
-  Tesla:               'Automotive',
-  Ford:                'Automotive',
-  GM:                  'Automotive',
-  'LG Energy Solution':'Automotive',
-  Volkswagen:          'Automotive',
-  Stellantis:          'Automotive',
-  Autoliv:             'Automotive',
-  BWA:                 'Automotive',
-  APTV:                'Automotive',
-  Panasonic:           'Automotive',
-  CATL:                'Automotive',
-  'Samsung SDI':       'Automotive',
-  Toyota:              'Automotive',
-  BYD:                 'Automotive',
-  CLS:                 'Tech',
-  IBM:                 'Tech',
-  Dell:                'Tech',
-  HPE:                 'Tech',
-  'Super Micro':       'Tech',
-  'Arista Networks':   'Tech',
-  Honeywell:           'Industrials',
-  Albemarle:           'Industrials',
-  'TE Connectivity':   'Industrials',
-  'Applied Materials': 'Semiconductors',
-  'Lam Research':      'Semiconductors',
-}
-
-const SECTOR_COLORS: Record<string, string> = {
-  'Consumer Tech': '#818cf8',
-  'Semiconductors': '#a78bfa',
-  'Aerospace':      '#60a5fa',
-  'E-commerce':     '#f59e0b',
-  'Logistics':      '#34d399',
-  'Automotive':     '#f87171',
-  'Tech':           '#38bdf8',
-  'Industrials':    '#fb923c',
-}
-
-const SECTOR_ORDER = [
-  'Consumer Tech', 'Semiconductors', 'Aerospace',
-  'E-commerce', 'Logistics', 'Automotive', 'Tech', 'Industrials',
-]
-
-function sectorColor(company: string): string {
-  const s = COMPANY_SECTOR[company]
-  return s ? (SECTOR_COLORS[s] ?? '') : ''
-}
 
 const REL_TYPE_LABELS: Record<string, string> = {
   SUPPLIES_TO: 'Supplier',
@@ -166,13 +77,13 @@ const REL_TYPE_LABELS: Record<string, string> = {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-export default function ContagionGraph({ shockCompany, shockPct, affected, edges }: Props) {
+export default function ContagionGraph({ shockCompany, shockPct, affected, edges, onNodeClick }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const graphRef = useRef<ForceGraphMethods | undefined>(undefined)
   const [width, setWidth] = useState(500)
   const [visibleHops, setVisibleHops] = useState(1)
-  const [edgePopup, setEdgePopup] = useState<EdgePopup | null>(null)
   const [topN, setTopN] = useState(12)
+  const [tooltip, setTooltip] = useState<TooltipData | null>(null)
   const HEIGHT = 520
   const isNeg = shockPct < 0
   const palette = isNeg ? NEG_COLORS : POS_COLORS
@@ -188,7 +99,7 @@ export default function ContagionGraph({ shockCompany, shockPct, affected, edges
   // Animate hop-by-hop reveal on new results
   useEffect(() => {
     setVisibleHops(1)
-    setEdgePopup(null)
+    setTooltip(null)
     const t1 = setTimeout(() => setVisibleHops(2), 700)
     const t2 = setTimeout(() => setVisibleHops(3), 1400)
     return () => { clearTimeout(t1); clearTimeout(t2) }
@@ -207,9 +118,9 @@ export default function ContagionGraph({ shockCompany, shockPct, affected, edges
     const hop2 = topAffected.filter(a => a.hop === 2)
     const hop3 = topAffected.filter(a => a.hop === 3)
 
-    const p1 = ringPositions(hop1, 140)
-    const p2 = ringPositions(hop2, 260)
-    const p3 = ringPositions(hop3, 390)
+    const p1 = ringPositions(hop1, 200)
+    const p2 = ringPositions(hop2, 370)
+    const p3 = ringPositions(hop3, 540)
 
     const posMap: Record<string, { fx: number; fy: number }> = {}
     hop1.forEach((a, i) => { posMap[a.company] = p1[i] })
@@ -265,12 +176,57 @@ export default function ContagionGraph({ shockCompany, shockPct, affected, edges
     return SECTOR_ORDER.filter(s => seen.has(s))
   }, [topAffected])
 
+  function hitTest(gx: number, gy: number) {
+    let best: typeof graphData.nodes[0] | null = null
+    let bestDist = Infinity
+    for (const n of graphData.nodes) {
+      const nx = (n as { x?: number }).x ?? 0
+      const ny = (n as { y?: number }).y ?? 0
+      const r = Math.max(nodeRadius(n.hop as number, n.exposure as number), 12)
+      const d = Math.hypot(gx - nx, gy - ny)
+      if (d <= r && d < bestDist) { best = n; bestDist = d }
+    }
+    return best
+  }
+
+  function handleClick(e: React.MouseEvent) {
+    if (!graphRef.current) return
+    const rect = containerRef.current!.getBoundingClientRect()
+    const { x: gx, y: gy } = graphRef.current.screen2GraphCoords(
+      e.clientX - rect.left,
+      e.clientY - rect.top,
+    )
+    const node = hitTest(gx, gy)
+    if (node) onNodeClick?.(String(node.id))
+  }
+
+  function handleMouseMove(e: React.MouseEvent) {
+    if (!graphRef.current) return
+    const rect = containerRef.current!.getBoundingClientRect()
+    const { x: gx, y: gy } = graphRef.current.screen2GraphCoords(
+      e.clientX - rect.left,
+      e.clientY - rect.top,
+    )
+    const node = hitTest(gx, gy)
+    if (!node) { setTooltip(null); return }
+
+    setTooltip({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      id: String(node.id),
+      hop: node.hop as number,
+      exposure: node.exposure as number,
+    })
+  }
+
   return (
     <div
       ref={containerRef}
       className="relative w-full"
       style={{ height: HEIGHT }}
-      onClick={() => setEdgePopup(null)}
+      onClick={handleClick}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => setTooltip(null)}
     >
       <ForceGraph2D
         ref={graphRef}
@@ -281,10 +237,7 @@ export default function ContagionGraph({ shockCompany, shockPct, affected, edges
         nodeRelSize={NODE_REL_SIZE}
         nodeVal={node => nodeVal(node.hop as number, node.exposure as number)}
         nodeColor={node => palette[node.hop as number] ?? '#71717a'}
-        nodeLabel={node => {
-          const exp = (node.exposure as number) * 100
-          return `${node.id} — ${exp >= 0 ? '+' : ''}${exp.toFixed(1)}%`
-        }}
+        nodeLabel=""
         nodeCanvasObjectMode={() => 'replace'}
         nodeCanvasObject={(node, ctx, globalScale) => {
           const hop = node.hop as number
@@ -317,41 +270,53 @@ export default function ContagionGraph({ shockCompany, shockPct, affected, edges
 
           const label = String(node.id)
           const fontSize = Math.max(9, 11 / globalScale)
-          ctx.font = `600 ${fontSize}px Inter, ui-sans-serif, sans-serif`
-
-          let labelX: number, labelY: number
           const pad = 3 / globalScale
-          const gap = 5 / globalScale
-
-          if (hop === 0) {
-            labelX = x
-            labelY = y + r + gap
-            ctx.textAlign = 'center'
-            ctx.textBaseline = 'top'
-          } else {
-            const mag = Math.hypot(x, y) || 1
-            const ux = x / mag, uy = y / mag
-            labelX = x + ux * (r + gap)
-            labelY = y + uy * (r + gap)
-            ctx.textAlign = ux > 0.25 ? 'left' : ux < -0.25 ? 'right' : 'center'
-            ctx.textBaseline = uy > 0.25 ? 'top' : uy < -0.25 ? 'bottom' : 'middle'
-          }
+          const gap = 10 / globalScale
+          ctx.font = `600 ${fontSize}px Inter, ui-sans-serif, sans-serif`
 
           const tw = ctx.measureText(label).width
           const pillW = tw + pad * 2
           const pillH = fontSize + pad * 2
 
-          let pillX = labelX
-          if (ctx.textAlign === 'left') pillX = labelX - pad
-          else if (ctx.textAlign === 'right') pillX = labelX - tw - pad
-          else pillX = labelX - tw / 2 - pad
+          // Anchor point: direction away from graph center, at node edge + gap
+          let anchorX: number, anchorY: number
+          let pillX: number, pillY: number
 
-          let pillY = labelY
-          if (ctx.textBaseline === 'top') pillY = labelY - pad
-          else if (ctx.textBaseline === 'bottom') pillY = labelY - fontSize - pad
-          else pillY = labelY - fontSize / 2 - pad
+          if (hop === 0) {
+            // Center node: label below
+            anchorX = x - pillW / 2
+            anchorY = y + r + gap
+          } else {
+            const mag = Math.hypot(x, y) || 1
+            const ux = x / mag
+            const uy = y / mag
+            // Tip of the label closest to the node
+            const tipX = x + ux * (r + gap)
+            const tipY = y + uy * (r + gap)
 
-          ctx.fillStyle = 'rgba(9,9,11,0.82)'
+            // Horizontal alignment: left of tip if going right, right if going left, centered if vertical
+            if (ux > 0.3) {
+              anchorX = tipX
+            } else if (ux < -0.3) {
+              anchorX = tipX - pillW
+            } else {
+              anchorX = tipX - pillW / 2
+            }
+
+            // Vertical alignment: below tip if going down, above if going up, centered if horizontal
+            if (uy > 0.3) {
+              anchorY = tipY
+            } else if (uy < -0.3) {
+              anchorY = tipY - pillH
+            } else {
+              anchorY = tipY - pillH / 2
+            }
+          }
+
+          pillX = anchorX
+          pillY = anchorY
+
+          ctx.fillStyle = 'rgba(9,9,11,0.85)'
           ctx.beginPath()
           const br = 3 / globalScale
           ctx.moveTo(pillX + br, pillY)
@@ -367,57 +332,49 @@ export default function ContagionGraph({ shockCompany, shockPct, affected, edges
           ctx.fill()
 
           ctx.fillStyle = '#f4f4f5'
-          ctx.fillText(label, labelX, labelY)
+          ctx.textAlign = 'left'
+          ctx.textBaseline = 'top'
+          ctx.fillText(label, pillX + pad, pillY + pad)
         }}
         linkColor={() => 'rgba(82,82,91,0.6)'}
         linkWidth={link => Math.max(0.5, ((link.weight as number) ?? 0) * 6)}
         linkDirectionalArrowLength={4}
         linkDirectionalArrowRelPos={1}
         linkDirectionalArrowColor={() => '#52525b'}
-        linkLabel={link => REL_TYPE_LABELS[(link as { rel_type?: string }).rel_type ?? ''] ?? ''}
-        onLinkClick={(link, event) => {
-          event.stopPropagation()
-          const rect = containerRef.current?.getBoundingClientRect()
-          const x = event.clientX - (rect?.left ?? 0)
-          const y = event.clientY - (rect?.top ?? 0)
-          const src = typeof link.source === 'object'
-            ? (link.source as { id: string }).id : String(link.source)
-          const tgt = typeof link.target === 'object'
-            ? (link.target as { id: string }).id : String(link.target)
-          setEdgePopup({
-            x, y, from: src, to: tgt,
-            relType: (link as { rel_type?: string }).rel_type ?? '',
-            weight: (link.weight as number) ?? 0,
-          })
+        linkLabel=""
+        onNodeHover={(node) => {
+          if (containerRef.current) {
+            containerRef.current.style.cursor = node && onNodeClick ? 'pointer' : 'default'
+          }
         }}
         enableNodeDrag={false}
         cooldownTicks={0}
         onEngineStop={() => graphRef.current?.zoomToFit(300, 80)}
       />
 
-      {/* Edge popup */}
-      {edgePopup && (
-        <div
-          className="absolute z-10 bg-zinc-800 border border-zinc-700 rounded-xl px-3.5 py-2.5 shadow-xl text-xs pointer-events-none"
-          style={{
-            left: Math.min(edgePopup.x + 14, width - 220),
-            top: Math.max(edgePopup.y - 14, 8),
-            minWidth: 200,
-          }}
-        >
-          <p className="font-semibold text-zinc-100 mb-1.5 leading-snug">
-            {edgePopup.from}
-            <span className="text-zinc-500 mx-1.5">→</span>
-            {edgePopup.to}
-          </p>
-          <p className="text-zinc-300 font-medium">
-            {REL_TYPE_LABELS[edgePopup.relType] ?? edgePopup.relType}
-          </p>
-          <p className="text-zinc-500 mt-0.5">
-            Weight: {(edgePopup.weight * 100).toFixed(0)}%
-          </p>
-        </div>
-      )}
+      {/* Node tooltip — name, exposure, sector */}
+      {tooltip && (() => {
+        const badge = sectorBadge(tooltip.id)
+        return (
+          <div
+            className="absolute z-10 bg-zinc-900/95 border border-zinc-700 rounded-xl px-3.5 py-2.5 shadow-2xl text-xs pointer-events-none"
+            style={{
+              left: Math.min(tooltip.x + 16, width - 190),
+              top: Math.max(tooltip.y - 8, 8),
+            }}
+          >
+            <p className="font-bold text-zinc-100 text-sm leading-tight">{tooltip.id}</p>
+            {badge && (
+              <p className="mt-0.5" style={{ color: badge.color }}>{badge.sector}</p>
+            )}
+            {tooltip.exposure !== 0 && (
+              <p className={`font-mono font-semibold mt-1 ${tooltip.exposure < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                {tooltip.exposure >= 0 ? '+' : ''}{(tooltip.exposure * 100).toFixed(1)}% exposure
+              </p>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Top-N slider — top right */}
       <div

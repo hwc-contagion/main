@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { COMPANY_SECTOR, SECTOR_COLORS } from '@/lib/sectors'
 
 interface AffectedCompany {
   company: string
@@ -21,86 +22,6 @@ interface Props {
   edges: Edge[]
 }
 
-const COMPANY_SECTOR: Record<string, string> = {
-  Apple:               'Consumer Tech',
-  TSMC:                'Semiconductors',
-  ASML:                'Semiconductors',
-  Qualcomm:            'Semiconductors',
-  Broadcom:            'Semiconductors',
-  Samsung:             'Semiconductors',
-  Nvidia:              'Semiconductors',
-  CRUS:                'Semiconductors',
-  SWKS:                'Semiconductors',
-  QRVO:                'Semiconductors',
-  AMKR:                'Semiconductors',
-  LRCX:                'Semiconductors',
-  ENTG:                'Semiconductors',
-  GlobalFoundries:     'Semiconductors',
-  ADI:                 'Semiconductors',
-  MCHP:                'Semiconductors',
-  'NXP Semiconductors':'Semiconductors',
-  'Analog Devices':    'Semiconductors',
-  'Microchip Technology': 'Semiconductors',
-  'Marvell Technology':'Semiconductors',
-  'Monolithic Power':  'Semiconductors',
-  'Texas Instruments': 'Semiconductors',
-  'ON Semiconductor':  'Semiconductors',
-  Wolfspeed:           'Semiconductors',
-  Boeing:              'Aerospace',
-  'Spirit AeroSystems':'Aerospace',
-  Airbus:              'Aerospace',
-  RTX:                 'Aerospace',
-  DCO:                 'Aerospace',
-  HXL:                 'Aerospace',
-  'Lockheed Martin':   'Aerospace',
-  'General Dynamics':  'Aerospace',
-  Textron:             'Aerospace',
-  GKN:                 'Aerospace',
-  'Triumph Group':     'Aerospace',
-  GE:                  'Industrials',
-  Amazon:              'E-commerce',
-  Meta:                'E-commerce',
-  Google:              'E-commerce',
-  Microsoft:           'E-commerce',
-  UPS:                 'Logistics',
-  FedEx:               'Logistics',
-  Tesla:               'Automotive',
-  Ford:                'Automotive',
-  GM:                  'Automotive',
-  'LG Energy Solution':'Automotive',
-  Volkswagen:          'Automotive',
-  Stellantis:          'Automotive',
-  Autoliv:             'Automotive',
-  BWA:                 'Automotive',
-  APTV:                'Automotive',
-  Panasonic:           'Automotive',
-  CATL:                'Automotive',
-  'Samsung SDI':       'Automotive',
-  Toyota:              'Automotive',
-  BYD:                 'Automotive',
-  CLS:                 'Tech',
-  IBM:                 'Tech',
-  Dell:                'Tech',
-  HPE:                 'Tech',
-  'Super Micro':       'Tech',
-  'Arista Networks':   'Tech',
-  Honeywell:           'Industrials',
-  Albemarle:           'Industrials',
-  'TE Connectivity':   'Industrials',
-  'Applied Materials': 'Semiconductors',
-  'Lam Research':      'Semiconductors',
-}
-
-const SECTOR_DOT: Record<string, string> = {
-  'Consumer Tech': '#818cf8',
-  'Semiconductors': '#a78bfa',
-  'Aerospace':      '#60a5fa',
-  'E-commerce':     '#f59e0b',
-  'Logistics':      '#34d399',
-  'Automotive':     '#f87171',
-  'Tech':           '#38bdf8',
-  'Industrials':    '#fb923c',
-}
 
 function buildPath(
   target: string,
@@ -156,11 +77,18 @@ function Placeholder() {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
+const PAGE_SIZE = 10
+
 export default function AffectedPanel({ shockCompany, affected, edges }: Props) {
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+
   const sorted = useMemo(
     () => [...affected].sort((a, b) => Math.abs(b.exposure) - Math.abs(a.exposure)),
     [affected]
   )
+
+  // Reset to first page whenever results change
+  useEffect(() => { setVisibleCount(PAGE_SIZE) }, [affected])
 
   const maxAbs = useMemo(
     () => Math.max(...sorted.map(r => Math.abs(r.exposure)), 0.001),
@@ -212,11 +140,11 @@ export default function AffectedPanel({ shockCompany, affected, edges }: Props) 
 
           {/* Rows */}
           <div className="flex flex-col divide-y divide-zinc-800/50">
-            {sorted.map(row => {
+            {sorted.slice(0, visibleCount).map(row => {
               const chain = buildPath(row.company, row.hop, shockCompany, affected, edges)
               const isPos = row.exposure >= 0
               const barPct = (Math.abs(row.exposure) / maxAbs) * 100
-              const dot = SECTOR_DOT[COMPANY_SECTOR[row.company] ?? '']
+              const dot = SECTOR_COLORS[COMPANY_SECTOR[row.company] ?? '']
 
               return (
                 <div
@@ -267,6 +195,27 @@ export default function AffectedPanel({ shockCompany, affected, edges }: Props) 
               )
             })}
           </div>
+
+          {/* Show more / show less */}
+          {(visibleCount < sorted.length || visibleCount > PAGE_SIZE) && (
+            <button
+              onClick={() =>
+                visibleCount < sorted.length
+                  ? setVisibleCount(c => c + PAGE_SIZE)
+                  : setVisibleCount(PAGE_SIZE)
+              }
+              className="mt-3 w-full py-2 text-xs text-zinc-500 hover:text-zinc-300 border border-zinc-800 hover:border-zinc-700 rounded-xl transition-colors"
+            >
+              {visibleCount < sorted.length ? (
+                <>
+                  Show {Math.min(PAGE_SIZE, sorted.length - visibleCount)} more
+                  <span className="ml-1.5 text-zinc-600">({sorted.length - visibleCount} remaining)</span>
+                </>
+              ) : (
+                'Show less'
+              )}
+            </button>
+          )}
         </>
       )}
     </div>

@@ -5,6 +5,7 @@ import AffectedPanel from '../components/AffectedPanel'
 import NarrativeBox from '../components/NarrativeBox'
 import ContagionGraph from '../components/ContagionGraph'
 import SectorBreakdown from '../components/SectorBreakdown'
+import CompanyDrawer from '../components/CompanyDrawer'
 
 interface AffectedCompany {
   company: string
@@ -140,6 +141,7 @@ export default function Home() {
   const [results, setResults] = useState<Results | null>(null)
   const [narrative, setNarrative] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -250,6 +252,7 @@ export default function Home() {
                   shockPct={results.shock_pct}
                   affected={results.affected}
                   edges={results.edges ?? []}
+                  onNodeClick={setSelectedCompany}
                 />
               </div>
             ) : (
@@ -390,6 +393,13 @@ export default function Home() {
           />
         </div>
       </div>
+
+      <CompanyDrawer
+        company={selectedCompany}
+        exposure={results?.affected.find(a => a.company === selectedCompany)?.exposure ?? null}
+        onClose={() => setSelectedCompany(null)}
+        onCompanyClick={setSelectedCompany}
+      />
     </div>
   )
 }
