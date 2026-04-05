@@ -1,10 +1,32 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import AffectedPanel from '../components/AffectedPanel'
 import NarrativeBox from '../components/NarrativeBox'
 import ContagionGraph from '../components/ContagionGraph'
 import SectorBreakdown from '../components/SectorBreakdown'
+
+function TremorIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
+      <line x1="24" y1="24" x2="5"  y2="10" stroke="#3b82f6" strokeWidth="1.2" opacity="0.4" />
+      <line x1="24" y1="24" x2="43" y2="12" stroke="#3b82f6" strokeWidth="1.2" opacity="0.4" />
+      <line x1="24" y1="24" x2="6"  y2="38" stroke="#3b82f6" strokeWidth="1.2" opacity="0.4" />
+      <line x1="24" y1="24" x2="42" y2="37" stroke="#3b82f6" strokeWidth="1.2" opacity="0.4" />
+      <line x1="24" y1="24" x2="24" y2="3"  stroke="#3b82f6" strokeWidth="1.2" opacity="0.4" />
+      <circle cx="24" cy="24" r="11" fill="none" stroke="#3b82f6" strokeWidth="1.5" opacity="0.35" />
+      <circle cx="24" cy="24" r="19" fill="none" stroke="#3b82f6" strokeWidth="1"   opacity="0.15" />
+      <circle cx="5"  cy="10" r="2.5" fill="#3b82f6" opacity="0.75" />
+      <circle cx="43" cy="12" r="2.5" fill="#3b82f6" opacity="0.75" />
+      <circle cx="6"  cy="38" r="2.5" fill="#3b82f6" opacity="0.75" />
+      <circle cx="42" cy="37" r="2.5" fill="#3b82f6" opacity="0.75" />
+      <circle cx="24" cy="3"  r="2.5" fill="#3b82f6" opacity="0.75" />
+      <circle cx="24" cy="24" r="6"   fill="#3b82f6" />
+      <circle cx="24" cy="24" r="3"   fill="#eff6ff" />
+    </svg>
+  )
+}
 
 interface AffectedCompany {
   company: string
@@ -104,12 +126,13 @@ function PlaceholderGraph() {
           </g>
         ))}
 
-        {/* Center node — pulsing */}
-        <circle cx={cx} cy={cy} r="28" fill="#1c1c1e" stroke="#57534e" strokeWidth="2">
+        {/* Center node — pulsing blue */}
+        <circle cx={cx} cy={cy} r="28" fill="#1c1c1e" stroke="#3b82f6" strokeWidth="2">
           <animate attributeName="r" values="28;32;28" dur="2.4s" repeatCount="indefinite" />
-          <animate attributeName="opacity" values="0.6;0.9;0.6" dur="2.4s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.8;1;0.8" dur="2.4s" repeatCount="indefinite" />
         </circle>
-        <circle cx={cx} cy={cy} r="13" fill="#3f3f46" />
+        <circle cx={cx} cy={cy} r="11" fill="#3b82f6" opacity="0.9" />
+        <circle cx={cx} cy={cy} r="5" fill="#eff6ff" />
 
         {/* Center label */}
         <text x={cx} y={cy + 42} textAnchor="middle"
@@ -207,42 +230,49 @@ export default function Home() {
     'text-zinc-500'
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col p-6 lg:p-8">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
 
-      {/* Header */}
-      <div className="mb-8 flex items-center gap-4">
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-          <line x1="24" y1="24" x2="5"  y2="10" stroke="#f97316" strokeWidth="1.2" opacity="0.4" />
-          <line x1="24" y1="24" x2="43" y2="12" stroke="#f97316" strokeWidth="1.2" opacity="0.4" />
-          <line x1="24" y1="24" x2="6"  y2="38" stroke="#f97316" strokeWidth="1.2" opacity="0.4" />
-          <line x1="24" y1="24" x2="42" y2="37" stroke="#f97316" strokeWidth="1.2" opacity="0.4" />
-          <line x1="24" y1="24" x2="24" y2="3"  stroke="#f97316" strokeWidth="1.2" opacity="0.4" />
-          <circle cx="24" cy="24" r="11" fill="none" stroke="#f97316" strokeWidth="1.5" opacity="0.35" />
-          <circle cx="24" cy="24" r="19" fill="none" stroke="#f97316" strokeWidth="1"   opacity="0.15" />
-          <circle cx="5"  cy="10" r="2.5" fill="#f97316" opacity="0.75" />
-          <circle cx="43" cy="12" r="2.5" fill="#f97316" opacity="0.75" />
-          <circle cx="6"  cy="38" r="2.5" fill="#f97316" opacity="0.75" />
-          <circle cx="42" cy="37" r="2.5" fill="#f97316" opacity="0.75" />
-          <circle cx="24" cy="3"  r="2.5" fill="#f97316" opacity="0.75" />
-          <circle cx="24" cy="24" r="6"   fill="#f97316" />
-          <circle cx="24" cy="24" r="3"   fill="#fff1e6" />
-        </svg>
-        <div>
-          <h1 className="text-4xl font-black tracking-tight leading-none text-zinc-100">
-            TREMOR
-          </h1>
-          <p className="text-zinc-500 text-sm mt-1 tracking-wide uppercase">
-            Earnings contagion risk engine
-          </p>
+      {/* ── Top hairline ── */}
+      <div
+        className="hairline-breathe fixed top-0 left-0 right-0 z-50 pointer-events-none"
+        style={{ height: 1, background: 'linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.45) 20%, rgba(59,130,246,0.85) 50%, rgba(59,130,246,0.45) 80%, transparent 100%)' }}
+      />
+
+      {/* ── Ambient glows — static, no animation ── */}
+      <div
+        className="pointer-events-none fixed inset-0"
+        style={{ zIndex: 0, background: 'radial-gradient(ellipse 60% 65% at 26% 52%, rgba(59,130,246,0.10) 0%, transparent 65%)' }}
+      />
+      <div
+        className="pointer-events-none fixed inset-0"
+        style={{ zIndex: 0, background: 'radial-gradient(ellipse 50% 40% at 84% 80%, rgba(96,165,250,0.055) 0%, transparent 60%)' }}
+      />
+      <div
+        className="pointer-events-none fixed inset-0"
+        style={{ zIndex: 0, background: 'radial-gradient(ellipse 35% 30% at 90% 10%, rgba(167,139,250,0.04) 0%, transparent 55%)' }}
+      />
+
+      {/* ── Nav ── */}
+      <nav className="sticky top-0 z-20 flex items-center justify-between px-8 py-4 shrink-0 border-b border-zinc-800/60 backdrop-blur-md bg-zinc-950/75">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <TremorIcon />
+          <span className="text-base font-black tracking-tight text-zinc-100">TREMOR</span>
+        </Link>
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-70 animate-pulse" />
+          <span className="text-xs text-zinc-500 uppercase tracking-widest">Contagion Analysis</span>
         </div>
-      </div>
+      </nav>
 
       {/* Body */}
-      <div className="flex flex-col lg:flex-row gap-5 flex-1">
+      <div className="relative z-10 flex flex-col lg:flex-row gap-5 flex-1 p-6 lg:p-8 pt-5">
 
         {/* Left — graph + breakdowns */}
-        <div className="lg:w-1/2 flex flex-col gap-4 lg:sticky lg:top-8 lg:self-start">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl shadow-black/30">
+        <div className="lg:w-1/2 flex flex-col gap-4 lg:sticky lg:top-[73px] lg:self-start">
+          <div
+            className="rounded-2xl overflow-hidden"
+            style={{ background: 'linear-gradient(160deg, #1c1c1f, #141416)', boxShadow: '0 0 0 1px rgba(59,130,246,0.12), 0 0 60px rgba(59,130,246,0.07), 0 24px 64px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)' }}
+          >
             {results ? (
               <div className="graph-appear">
                 <ContagionGraph
@@ -266,11 +296,13 @@ export default function Home() {
           {/* Form card */}
           <form
             onSubmit={handleSubmit}
-            className="flex flex-col gap-5 bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl shadow-black/30"
+            className="flex flex-col gap-5 rounded-2xl overflow-hidden"
+            style={{ background: 'linear-gradient(160deg, #1c1c1f, #141416)', boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 16px 48px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05)' }}
           >
             {/* Card header strip */}
-            <div className="px-6 pt-5 pb-4 border-b border-zinc-800">
-              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">Configure shock</p>
+            <div className="px-6 pt-5 pb-4 border-b border-zinc-800/70 flex items-center gap-2.5">
+              <span className="w-1 h-3.5 rounded-full bg-blue-500 opacity-80" />
+              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Configure shock</p>
             </div>
 
             <div className="px-6 pb-6 flex flex-col gap-5">
@@ -308,7 +340,7 @@ export default function Home() {
                       placeholder="e.g. Apple, Boeing, Tesla"
                       value={company}
                       onChange={(e) => setCompany(e.target.value)}
-                      className="bg-zinc-800/60 border border-zinc-700/60 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all text-sm"
+                      className="bg-zinc-800/60 border border-zinc-700/60 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/30 transition-all text-sm"
                     />
                   </div>
 
@@ -346,7 +378,7 @@ export default function Home() {
                     placeholder="e.g. An earthquake destroyed Apple's main factory in Taiwan"
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    className="bg-zinc-800/60 border border-zinc-700/60 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 transition-all resize-none text-sm"
+                    className="bg-zinc-800/60 border border-zinc-700/60 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/30 transition-all resize-none text-sm"
                   />
                   {parsedCompany !== null && parsedPct !== null && (
                     <div className="text-xs bg-zinc-800/60 border border-zinc-700/50 rounded-xl px-4 py-3 flex flex-col gap-1">
@@ -367,7 +399,7 @@ export default function Home() {
               <button
                 type="submit"
                 disabled={loading || !canSubmit}
-                className="bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors rounded-xl px-6 py-3 font-semibold text-sm"
+                className="bg-blue-500 hover:bg-blue-400 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed transition-colors rounded-xl px-6 py-3 font-semibold text-sm text-white"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">

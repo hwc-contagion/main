@@ -145,7 +145,7 @@ const SECTOR_COLORS: Record<string, string> = {
   'Logistics':      '#34d399',
   'Automotive':     '#f87171',
   'Tech':           '#38bdf8',
-  'Industrials':    '#fb923c',
+  'Industrials':    '#94a3b8',
 }
 
 const SECTOR_ORDER = [

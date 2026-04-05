@@ -90,7 +90,7 @@ const SECTOR_COLORS: Record<string, string> = {
   'Logistics':      '#34d399',
   'Automotive':     '#f87171',
   'Tech':           '#38bdf8',
-  'Industrials':    '#fb923c',
+  'Industrials':    '#94a3b8',
 }
 
 const SECTOR_ORDER = [
@@ -138,8 +138,12 @@ export default function SectorBreakdown({ affected }: Props) {
   const isEmpty = rows.length === 0
 
   return (
-    <div className={`bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-lg shadow-black/20 ${!isEmpty ? 'card-appear' : ''}`}>
-      <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-4">
+    <div
+      className={`rounded-2xl p-5 ${!isEmpty ? 'card-appear' : ''}`}
+      style={{ background: 'linear-gradient(160deg, #1c1c1f, #141416)', boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)' }}
+    >
+      <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+        <span className="w-1 h-3.5 rounded-full bg-blue-500 opacity-80 inline-block" />
         Sector Exposure
       </h2>
 

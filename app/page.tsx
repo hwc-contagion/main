@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 const NODES = {
-  center: { x: 300, y: 270, r: 28, label: 'AAPL', color: '#f97316' },
+  center: { x: 300, y: 270, r: 28, label: 'AAPL', color: '#3b82f6' },
   ring1: [
     { x: 300, y: 165, r: 16, label: 'TSMC' },
     { x: 393, y: 228, r: 16, label: 'NVDA' },
@@ -40,7 +40,7 @@ export default function LandingPage() {
         className="pointer-events-none fixed inset-0"
         style={{
           background:
-            'radial-gradient(ellipse 55% 45% at 72% 48%, rgba(249,115,22,0.055) 0%, transparent 70%)',
+            'radial-gradient(ellipse 55% 45% at 72% 48%, rgba(59,130,246,0.055) 0%, transparent 70%)',
         }}
       />
 
@@ -63,7 +63,7 @@ export default function LandingPage() {
 
         {/* Left — copy */}
         <div className="flex-1 flex flex-col items-start gap-8 max-w-lg">
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full border border-orange-500/25 bg-orange-500/8 text-orange-400 text-xs font-semibold tracking-widest uppercase">
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/25 bg-blue-500/8 text-blue-400 text-xs font-semibold tracking-widest uppercase">
             Earnings Contagion Risk
           </div>
 
@@ -71,7 +71,7 @@ export default function LandingPage() {
             When one company<br />
             shakes,{' '}
             <span className="text-transparent bg-clip-text"
-              style={{ backgroundImage: 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)' }}>
+              style={{ backgroundImage: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)' }}>
               who else falls?
             </span>
           </h1>
@@ -83,7 +83,7 @@ export default function LandingPage() {
 
           <Link
             href="/analyze"
-            className="group flex items-center gap-2.5 bg-orange-500 hover:bg-orange-400 transition-colors rounded-xl px-7 py-3.5 text-white font-semibold text-sm shadow-lg shadow-orange-500/20"
+            className="group flex items-center gap-2.5 bg-blue-500 hover:bg-blue-400 transition-colors rounded-xl px-7 py-3.5 text-white font-semibold text-sm shadow-lg shadow-blue-500/20"
           >
             Run an analysis
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="transition-transform group-hover:translate-x-0.5">
@@ -98,7 +98,7 @@ export default function LandingPage() {
             {/* Card glow */}
             <div
               className="absolute inset-0 rounded-3xl pointer-events-none"
-              style={{ boxShadow: '0 0 80px 0px rgba(249,115,22,0.07), inset 0 1px 0 rgba(255,255,255,0.04)' }}
+              style={{ boxShadow: '0 0 80px 0px rgba(59,130,246,0.07), inset 0 1px 0 rgba(255,255,255,0.04)' }}
             />
             <div className="absolute inset-0 rounded-3xl bg-zinc-900/60 border border-zinc-800/80 backdrop-blur-sm" />
             <svg
@@ -109,12 +109,12 @@ export default function LandingPage() {
             >
               <defs>
                 <radialGradient id="glow" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#f97316" stopOpacity="0.18" />
-                  <stop offset="100%" stopColor="#f97316" stopOpacity="0" />
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.18" />
+                  <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
                 </radialGradient>
                 <radialGradient id="nodeGlow" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#f97316" stopOpacity="0.35" />
-                  <stop offset="100%" stopColor="#f97316" stopOpacity="0" />
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.35" />
+                  <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
                 </radialGradient>
               </defs>
 
@@ -123,7 +123,7 @@ export default function LandingPage() {
 
               {/* Ripple rings — SMIL */}
               {[0, 1.07, 2.14].map((delay, i) => (
-                <circle key={i} cx={NODES.center.x} cy={NODES.center.y} r="30" fill="none" stroke="#f97316" strokeWidth="1.2">
+                <circle key={i} cx={NODES.center.x} cy={NODES.center.y} r="30" fill="none" stroke="#3b82f6" strokeWidth="1.2">
                   <animate attributeName="r" from="30" to="215" dur="3.2s" begin={`${delay}s`} repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.25,0,0.5,1" />
                   <animate attributeName="opacity" from="0.45" to="0" dur="3.2s" begin={`${delay}s`} repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.25,0,0.5,1" />
                 </circle>
@@ -139,7 +139,7 @@ export default function LandingPage() {
                   key={i}
                   x1={NODES.center.x} y1={NODES.center.y}
                   x2={n.x} y2={n.y}
-                  stroke="#f97316" strokeWidth="1.2" opacity="0.22"
+                  stroke="#3b82f6" strokeWidth="1.2" opacity="0.22"
                 />
               ))}
 
@@ -159,7 +159,7 @@ export default function LandingPage() {
               {/* Ring 2 nodes */}
               {NODES.ring2.map((n, i) => (
                 <g key={i}>
-                  <circle cx={n.x} cy={n.y} r={n.r + 5} fill="#f97316" opacity="0.04" />
+                  <circle cx={n.x} cy={n.y} r={n.r + 5} fill="#3b82f6" opacity="0.04" />
                   <circle cx={n.x} cy={n.y} r={n.r} fill="#18181b" stroke="#3f3f46" strokeWidth="1.2" />
                   <text
                     x={n.x + (labelAnchor(n.x) === 'start' ? n.r + 6 : labelAnchor(n.x) === 'end' ? -(n.r + 6) : 0)}
@@ -179,7 +179,7 @@ export default function LandingPage() {
               {/* Ring 1 nodes */}
               {NODES.ring1.map((n, i) => (
                 <g key={i}>
-                  <circle cx={n.x} cy={n.y} r={n.r + 7} fill="#f97316" opacity="0.06" />
+                  <circle cx={n.x} cy={n.y} r={n.r + 7} fill="#3b82f6" opacity="0.06" />
                   <circle cx={n.x} cy={n.y} r={n.r} fill="#27272a" stroke="#52525b" strokeWidth="1.5" />
                   <text
                     x={n.x + (labelAnchor(n.x) === 'start' ? n.r + 7 : labelAnchor(n.x) === 'end' ? -(n.r + 7) : 0)}
@@ -198,19 +198,19 @@ export default function LandingPage() {
 
               {/* Center node */}
               <circle cx={NODES.center.x} cy={NODES.center.y} r={NODES.center.r + 12} fill="url(#nodeGlow)" />
-              <circle cx={NODES.center.x} cy={NODES.center.y} r={NODES.center.r} fill="#1c1c1e" stroke="#f97316" strokeWidth="2">
+              <circle cx={NODES.center.x} cy={NODES.center.y} r={NODES.center.r} fill="#1c1c1e" stroke="#3b82f6" strokeWidth="2">
                 <animate attributeName="r" values="28;32;28" dur="2.4s" repeatCount="indefinite" />
                 <animate attributeName="opacity" values="0.8;1;0.8" dur="2.4s" repeatCount="indefinite" />
               </circle>
-              <circle cx={NODES.center.x} cy={NODES.center.y} r="11" fill="#f97316" opacity="0.9" />
-              <circle cx={NODES.center.x} cy={NODES.center.y} r="5" fill="#fff7ed" />
+              <circle cx={NODES.center.x} cy={NODES.center.y} r="11" fill="#3b82f6" opacity="0.9" />
+              <circle cx={NODES.center.x} cy={NODES.center.y} r="5" fill="#eff6ff" />
 
               {/* Center label */}
               <text
                 x={NODES.center.x}
                 y={NODES.center.y + 46}
                 textAnchor="middle"
-                fill="#f97316"
+                fill="#3b82f6"
                 fontSize="10"
                 fontFamily="ui-monospace, monospace"
                 letterSpacing="0.1em"
@@ -237,20 +237,20 @@ export default function LandingPage() {
 function TremorIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
-      <line x1="24" y1="24" x2="5"  y2="10" stroke="#f97316" strokeWidth="1.2" opacity="0.4" />
-      <line x1="24" y1="24" x2="43" y2="12" stroke="#f97316" strokeWidth="1.2" opacity="0.4" />
-      <line x1="24" y1="24" x2="6"  y2="38" stroke="#f97316" strokeWidth="1.2" opacity="0.4" />
-      <line x1="24" y1="24" x2="42" y2="37" stroke="#f97316" strokeWidth="1.2" opacity="0.4" />
-      <line x1="24" y1="24" x2="24" y2="3"  stroke="#f97316" strokeWidth="1.2" opacity="0.4" />
-      <circle cx="24" cy="24" r="11" fill="none" stroke="#f97316" strokeWidth="1.5" opacity="0.35" />
-      <circle cx="24" cy="24" r="19" fill="none" stroke="#f97316" strokeWidth="1"   opacity="0.15" />
-      <circle cx="5"  cy="10" r="2.5" fill="#f97316" opacity="0.75" />
-      <circle cx="43" cy="12" r="2.5" fill="#f97316" opacity="0.75" />
-      <circle cx="6"  cy="38" r="2.5" fill="#f97316" opacity="0.75" />
-      <circle cx="42" cy="37" r="2.5" fill="#f97316" opacity="0.75" />
-      <circle cx="24" cy="3"  r="2.5" fill="#f97316" opacity="0.75" />
-      <circle cx="24" cy="24" r="6"   fill="#f97316" />
-      <circle cx="24" cy="24" r="3"   fill="#fff1e6" />
+      <line x1="24" y1="24" x2="5"  y2="10" stroke="#3b82f6" strokeWidth="1.2" opacity="0.4" />
+      <line x1="24" y1="24" x2="43" y2="12" stroke="#3b82f6" strokeWidth="1.2" opacity="0.4" />
+      <line x1="24" y1="24" x2="6"  y2="38" stroke="#3b82f6" strokeWidth="1.2" opacity="0.4" />
+      <line x1="24" y1="24" x2="42" y2="37" stroke="#3b82f6" strokeWidth="1.2" opacity="0.4" />
+      <line x1="24" y1="24" x2="24" y2="3"  stroke="#3b82f6" strokeWidth="1.2" opacity="0.4" />
+      <circle cx="24" cy="24" r="11" fill="none" stroke="#3b82f6" strokeWidth="1.5" opacity="0.35" />
+      <circle cx="24" cy="24" r="19" fill="none" stroke="#3b82f6" strokeWidth="1"   opacity="0.15" />
+      <circle cx="5"  cy="10" r="2.5" fill="#3b82f6" opacity="0.75" />
+      <circle cx="43" cy="12" r="2.5" fill="#3b82f6" opacity="0.75" />
+      <circle cx="6"  cy="38" r="2.5" fill="#3b82f6" opacity="0.75" />
+      <circle cx="42" cy="37" r="2.5" fill="#3b82f6" opacity="0.75" />
+      <circle cx="24" cy="3"  r="2.5" fill="#3b82f6" opacity="0.75" />
+      <circle cx="24" cy="24" r="6"   fill="#3b82f6" />
+      <circle cx="24" cy="24" r="3"   fill="#eff6ff" />
     </svg>
   )
 }
