@@ -54,8 +54,7 @@ export default function SectorBreakdown({ affected }: Props) {
 
   return (
     <div
-      className={`rounded-2xl p-5 ${!isEmpty ? 'card-appear' : ''}`}
-      style={{ background: 'linear-gradient(160deg, #1c1c1f, #141416)', boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)' }}
+      className={`rounded-2xl p-5 bg-zinc-900 border border-zinc-800 ${!isEmpty ? 'card-appear' : ''}`}
     >
       <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4 flex items-center gap-2">
         <span className="w-1 h-3.5 rounded-full bg-blue-500 opacity-80 inline-block" />

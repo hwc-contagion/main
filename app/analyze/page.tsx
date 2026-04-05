@@ -234,6 +234,9 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<Results | null>(null)
   const [narrative, setNarrative] = useState<string | null>(null)
+  const [narrativeLoading, setNarrativeLoading] = useState(false)
+  const [deepNarrative, setDeepNarrative] = useState<string | null>(null)
+  const [deepNarrativeLoading, setDeepNarrativeLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null)
   const [showCritical, setShowCritical] = useState(false)
@@ -245,10 +248,47 @@ export default function Home() {
     return findCriticalNode(nodeNames, results.edges)
   }, [results])
 
+  async function fetchNarrative(data: Results) {
+    setNarrativeLoading(true)
+    try {
+      const res = await fetch('/api/narrative', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shock_company: data.shock_company, shock_pct: data.shock_pct, affected: data.affected }),
+      })
+      const json = await res.json()
+      if (json.narrative) setNarrative(json.narrative)
+    } catch {
+      // silently fail — graph is already showing
+    } finally {
+      setNarrativeLoading(false)
+    }
+  }
+
+  async function handleLearnMore() {
+    if (!results || deepNarrativeLoading) return
+    setDeepNarrativeLoading(true)
+    try {
+      const res = await fetch('/api/narrative-deep', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shock_company: results.shock_company, shock_pct: results.shock_pct, affected: results.affected, short_narrative: narrative }),
+      })
+      const json = await res.json()
+      if (json.narrative) setDeepNarrative(json.narrative)
+    } catch {
+      // silently fail
+    } finally {
+      setDeepNarrativeLoading(false)
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setNarrative(null)
+    setDeepNarrative(null)
     setParsedCompany(null)
     setParsedPct(null)
     setReasoning(null)
@@ -294,8 +334,9 @@ export default function Home() {
         throw new Error((data.error as string) ?? `Request failed (${res.status})`)
       }
 
-      setResults(data as unknown as Results)
-      setNarrative((data.narrative as string) ?? null)
+      const graphData = data as unknown as Results
+      setResults(graphData)
+      fetchNarrative(graphData) // fire in background, don't await
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -311,30 +352,16 @@ export default function Home() {
     'text-zinc-500'
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-black text-zinc-100 flex flex-col">
 
       {/* ── Top hairline ── */}
       <div
         className="hairline-breathe fixed top-0 left-0 right-0 z-50 pointer-events-none"
-        style={{ height: 1, background: 'linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.45) 20%, rgba(59,130,246,0.85) 50%, rgba(59,130,246,0.45) 80%, transparent 100%)' }}
-      />
-
-      {/* ── Ambient glows — static, no animation ── */}
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{ zIndex: 0, background: 'radial-gradient(ellipse 60% 65% at 26% 52%, rgba(59,130,246,0.10) 0%, transparent 65%)' }}
-      />
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{ zIndex: 0, background: 'radial-gradient(ellipse 50% 40% at 84% 80%, rgba(96,165,250,0.055) 0%, transparent 60%)' }}
-      />
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{ zIndex: 0, background: 'radial-gradient(ellipse 35% 30% at 90% 10%, rgba(167,139,250,0.04) 0%, transparent 55%)' }}
+        style={{ height: 1, background: 'linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.4) 20%, rgba(59,130,246,0.8) 50%, rgba(59,130,246,0.4) 80%, transparent 100%)' }}
       />
 
       {/* ── Nav ── */}
-      <nav className="sticky top-0 z-20 flex items-center justify-between px-8 py-4 shrink-0 border-b border-zinc-800/60 backdrop-blur-md bg-zinc-950/75">
+      <nav className="sticky top-0 z-20 flex items-center justify-between px-8 py-4 shrink-0 border-b border-zinc-800/60 backdrop-blur-md bg-black/80">
         <Link href="/" className="flex items-center gap-2.5 group">
           <TremorIcon />
           <span className="text-base font-black tracking-tight text-zinc-100">TREMOR</span>
@@ -363,8 +390,7 @@ export default function Home() {
         {/* Left — graph + breakdowns */}
         <div className="lg:w-1/2 flex flex-col gap-4 lg:sticky lg:top-[73px] lg:self-start">
           <div
-            className="rounded-2xl overflow-hidden"
-            style={{ background: 'linear-gradient(160deg, #1c1c1f, #141416)', boxShadow: '0 0 0 1px rgba(59,130,246,0.12), 0 0 60px rgba(59,130,246,0.07), 0 24px 64px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)' }}
+            className="rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800"
           >
             {results ? (
               <div className="graph-appear">
@@ -415,7 +441,15 @@ export default function Home() {
             </div>
           )}
           <SectorBreakdown affected={results?.affected ?? []} />
-          {narrative && <NarrativeBox narrative={narrative} />}
+          {results && (
+            <NarrativeBox
+              narrative={narrative}
+              loading={narrativeLoading}
+              deepNarrative={deepNarrative}
+              deepLoading={deepNarrativeLoading}
+              onLearnMore={handleLearnMore}
+            />
+          )}
         </div>
 
         {/* Right — controls + results */}
@@ -424,8 +458,7 @@ export default function Home() {
           {/* Form card */}
           <form
             onSubmit={handleSubmit}
-            className="flex flex-col gap-5 rounded-2xl overflow-hidden"
-            style={{ background: 'linear-gradient(160deg, #1c1c1f, #141416)', boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 16px 48px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05)' }}
+            className="flex flex-col gap-5 rounded-2xl overflow-hidden bg-zinc-900 border border-zinc-800"
           >
             {/* Card header strip */}
             <div className="px-6 pt-5 pb-4 border-b border-zinc-800/70 flex items-center gap-2.5">
@@ -439,18 +472,14 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setMode('manual')}
-                  className={`flex-1 py-2.5 transition-all duration-150 ${mode === 'manual'
-                    ? 'bg-zinc-100 text-zinc-900 font-semibold'
-                    : 'text-zinc-400 hover:text-zinc-200'}`}
+                  className={`flex-1 py-2.5 transition-all duration-150 ${mode === 'manual' ? 'bg-zinc-100 text-zinc-900 font-semibold' : 'text-zinc-400 hover:text-zinc-200'}`}
                 >
                   Manual
                 </button>
                 <button
                   type="button"
                   onClick={() => setMode('natural')}
-                  className={`flex-1 py-2.5 transition-all duration-150 ${mode === 'natural'
-                    ? 'bg-zinc-100 text-zinc-900 font-semibold'
-                    : 'text-zinc-400 hover:text-zinc-200'}`}
+                  className={`flex-1 py-2.5 transition-all duration-150 ${mode === 'natural' ? 'bg-zinc-100 text-zinc-900 font-semibold' : 'text-zinc-400 hover:text-zinc-200'}`}
                 >
                   Natural Language
                 </button>

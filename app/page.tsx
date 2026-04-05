@@ -33,14 +33,14 @@ function labelDy(y: number): number {
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col overflow-hidden">
+    <main className="min-h-screen bg-black text-zinc-100 flex flex-col overflow-hidden">
 
       {/* Ambient glow */}
       <div
         className="pointer-events-none fixed inset-0"
         style={{
           background:
-            'radial-gradient(ellipse 55% 45% at 72% 48%, rgba(59,130,246,0.055) 0%, transparent 70%)',
+            'radial-gradient(ellipse 60% 55% at 70% 48%, rgba(59,130,246,0.13) 0%, transparent 65%)',
         }}
       />
 
@@ -100,7 +100,7 @@ export default function LandingPage() {
               className="absolute inset-0 rounded-3xl pointer-events-none"
               style={{ boxShadow: '0 0 80px 0px rgba(59,130,246,0.07), inset 0 1px 0 rgba(255,255,255,0.04)' }}
             />
-            <div className="absolute inset-0 rounded-3xl bg-zinc-900/60 border border-zinc-800/80 backdrop-blur-sm" />
+            <div className="absolute inset-0 rounded-3xl backdrop-blur-sm" style={{ background: 'linear-gradient(160deg, #0d1526cc, #080e1acc)', border: '1px solid rgba(59,130,246,0.15)' }} />
             <svg
               viewBox="0 0 600 552"
               className="relative w-full h-full"

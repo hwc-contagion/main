@@ -111,8 +111,8 @@ export default function AffectedPanel({ shockCompany, affected, edges }: Props) 
 
   return (
     <div
-      className={`rounded-2xl p-5 ${!isEmpty ? 'card-appear' : ''}`}
-      style={{ background: 'linear-gradient(160deg, #1c1c1f, #141416)', boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)', ...(!isEmpty ? { animationDelay: '40ms' } : {}) }}
+      className={`rounded-2xl p-5 bg-zinc-900 border border-zinc-800 ${!isEmpty ? 'card-appear' : ''}`}
+      style={!isEmpty ? { animationDelay: '40ms' } : undefined}
     >
       <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4 flex items-center gap-2">
         <span className="w-1 h-3.5 rounded-full bg-blue-500 opacity-80 inline-block" />
@@ -164,7 +164,7 @@ export default function AffectedPanel({ shockCompany, affected, edges }: Props) 
                         )}
                         <span className={`text-xs font-medium truncate leading-none ${
                           i === 0
-                            ? 'text-blue-400 shrink-0'
+                            ? 'text-zinc-100 shrink-0'
                             : i === chain.length - 1
                             ? 'text-zinc-100 shrink-0'
                             : 'text-zinc-500 shrink-0'
