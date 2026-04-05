@@ -25,7 +25,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Appear animations */
+/* ── Appear animations ── */
 @keyframes graph-zoom-in {
   from { opacity: 0; transform: scale(0.95); }
   to   { opacity: 1; transform: scale(1); }
@@ -41,3 +41,13 @@ body {
 .card-appear {
   animation: card-fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ── Aura: hairline pulse ── */
+@keyframes hairline-breathe {
+  0%, 100% { opacity: 0.7; }
+  50%       { opacity: 1; }
+}
+.hairline-breathe {
+  animation: hairline-breathe 3s ease-in-out infinite;
+}
+

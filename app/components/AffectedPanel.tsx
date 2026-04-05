@@ -111,10 +111,11 @@ export default function AffectedPanel({ shockCompany, affected, edges }: Props) 
 
   return (
     <div
-      className={`bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-lg shadow-black/20 ${!isEmpty ? 'card-appear' : ''}`}
-      style={!isEmpty ? { animationDelay: '40ms' } : undefined}
+      className={`rounded-2xl p-5 ${!isEmpty ? 'card-appear' : ''}`}
+      style={{ background: 'linear-gradient(160deg, #1c1c1f, #141416)', boxShadow: '0 0 0 1px rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)', ...(!isEmpty ? { animationDelay: '40ms' } : {}) }}
     >
-      <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-4">
+      <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+        <span className="w-1 h-3.5 rounded-full bg-blue-500 opacity-80 inline-block" />
         Affected Companies
       </h2>
 
@@ -130,7 +131,7 @@ export default function AffectedPanel({ shockCompany, affected, edges }: Props) 
                 { label: 'Avg exposure', value: `${(stats.avg * 100).toFixed(1)}%` },
                 { label: 'Top sector', value: stats.topSector },
               ].map(s => (
-                <div key={s.label} className="flex-1 bg-zinc-800/50 border border-zinc-700/40 rounded-xl px-3 py-2">
+                <div key={s.label} className="flex-1 rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)', boxShadow: '0 0 0 1px rgba(255,255,255,0.06)' }}>
                   <p className="text-[9px] text-zinc-500 uppercase tracking-widest mb-0.5">{s.label}</p>
                   <p className="text-xs font-semibold text-zinc-100 truncate">{s.value}</p>
                 </div>
@@ -160,7 +161,7 @@ export default function AffectedPanel({ shockCompany, affected, edges }: Props) 
                         )}
                         <span className={`text-xs font-medium truncate leading-none ${
                           i === 0
-                            ? 'text-orange-400 shrink-0'
+                            ? 'text-blue-400 shrink-0'
                             : i === chain.length - 1
                             ? 'text-zinc-100 shrink-0'
                             : 'text-zinc-500 shrink-0'
