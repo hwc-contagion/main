@@ -269,7 +269,7 @@ export default function ExplorePage() {
 
         {/* Graph card */}
         <div
-          className="rounded-2xl overflow-hidden flex-1"
+          className="rounded-2xl overflow-hidden"
           style={{
             background: 'linear-gradient(160deg, #1c1c1f, #141416)',
             boxShadow: '0 0 0 1px rgba(59,130,246,0.12), 0 0 60px rgba(59,130,246,0.06), 0 24px 64px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)',

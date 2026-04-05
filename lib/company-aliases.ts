@@ -343,12 +343,20 @@ const ALIAS_MAP = new Map<string, string>(
   ALIASES.map(([alias, canonical]) => [alias.toLowerCase(), canonical])
 );
 
+// All canonical names, lowercased → canonical (for case-insensitive fallback)
+const CANONICAL_NAMES = Array.from(new Set(ALIASES.map(([, c]) => c)))
+const CANONICAL_MAP = new Map<string, string>(
+  CANONICAL_NAMES.map(name => [name.toLowerCase(), name])
+)
+
 /**
  * Resolve a user-supplied company name/ticker to the canonical Neo4j node name.
- * Returns the input unchanged (trimmed) if no alias is found.
+ * 1. Exact alias match (case-insensitive)
+ * 2. Case-insensitive match against canonical names
+ * 3. Return input trimmed unchanged
  */
 export function resolveCompany(input: string): string {
   const trimmed = input.trim()
   const lower = trimmed.toLowerCase()
-  return ALIAS_MAP.get(lower) ?? trimmed
+  return ALIAS_MAP.get(lower) ?? CANONICAL_MAP.get(lower) ?? trimmed
 }
