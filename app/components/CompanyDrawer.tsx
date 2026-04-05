@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { sectorBadge } from '@/lib/sectors'
+import { sectorBadge, COMPANY_TICKER } from '@/lib/sectors'
 import { COMPANY_DESCRIPTIONS } from '@/lib/descriptions'
 
 interface Neighbor {
@@ -94,6 +94,8 @@ export default function CompanyDrawer({ company, exposure, onClose, onCompanyCli
 
   const badge = company ? sectorBadge(company) : null
   const hasExposure = exposure != null && exposure !== 0
+  const ticker = company ? COMPANY_TICKER[company] : null
+  const yahooUrl = ticker ? `https://finance.yahoo.com/quote/${ticker}/` : null
 
   return (
     <>
@@ -163,9 +165,26 @@ export default function CompanyDrawer({ company, exposure, onClose, onCompanyCli
 
           {/* Description — shown as soon as we know the company name */}
           {company && COMPANY_DESCRIPTIONS[company] && (
-            <p className="text-xs text-zinc-400 leading-relaxed">
-              {COMPANY_DESCRIPTIONS[company]}
-            </p>
+            <div className="flex flex-col gap-2.5">
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                {COMPANY_DESCRIPTIONS[company]}
+              </p>
+              {yahooUrl && (
+                <a
+                  href={yahooUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="self-start flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/60 hover:border-zinc-600 transition-all text-[11px] text-zinc-400 hover:text-zinc-200"
+                >
+                  <span className="font-mono font-semibold text-zinc-300">{ticker}</span>
+                  <span className="text-zinc-600">·</span>
+                  <span>Yahoo Finance</span>
+                  <svg width="9" height="9" viewBox="0 0 9 9" fill="none" className="text-zinc-500">
+                    <path d="M1.5 7.5l6-6M4 1.5h3.5v3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </a>
+              )}
+            </div>
           )}
 
           {profile && (
