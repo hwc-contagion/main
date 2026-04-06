@@ -391,11 +391,6 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Persist state across route navigations
-  useEffect(() => {
-    saveAnalyzeState({ mode, company, shockPct, prompt, parsedCompany, parsedPct, reasoning, results, narrative, deepNarrative })
-  }, [mode, company, shockPct, prompt, parsedCompany, parsedPct, reasoning, results, narrative, deepNarrative])
-
   const criticalResult = useMemo(() => {
     if (!results) return null
     const nodeNames = [results.shock_company, ...results.affected.map(a => a.company)]
@@ -411,7 +406,10 @@ export default function Home() {
         body: JSON.stringify({ shock_company: data.shock_company, shock_pct: data.shock_pct, affected: data.affected }),
       })
       const json = await res.json()
-      if (json.narrative) setNarrative(json.narrative)
+      if (json.narrative) {
+        setNarrative(json.narrative)
+        saveAnalyzeState({ narrative: json.narrative })
+      }
     } catch {
       // silently fail — graph is already showing
     } finally {
@@ -429,7 +427,10 @@ export default function Home() {
         body: JSON.stringify({ shock_company: results.shock_company, shock_pct: results.shock_pct, affected: results.affected, short_narrative: narrative }),
       })
       const json = await res.json()
-      if (json.narrative) setDeepNarrative(json.narrative)
+      if (json.narrative) {
+        setDeepNarrative(json.narrative)
+        saveAnalyzeState({ deepNarrative: json.narrative })
+      }
     } catch {
       // silently fail
     } finally {
@@ -460,6 +461,7 @@ export default function Home() {
 
       const graphData = data as unknown as Results
       setResults(graphData)
+      saveAnalyzeState({ results: graphData })
       fetchNarrative(graphData)
       setPortfolioExposure(calcPortfolioExposure(graphData))
     } catch (err) {
