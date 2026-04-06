@@ -124,7 +124,7 @@ export default function ExplorePage() {
   const [search, setSearch]             = useState('')
   const [highlighted, setHighlighted]   = useState<string | null>(null)
   const [activeFilter, setActiveFilter] = useState<string | null>(null)
-  const [showCritical, setShowCritical] = useState(false)
+  const [showCritical, setShowCritical] = useState(true)
   const [showHelp, setShowHelp]         = useState(false)
   const [zoomReset, setZoomReset]       = useState(0)
   const debounceRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -179,8 +179,8 @@ export default function ExplorePage() {
           <button onClick={() => setShowHelp(true)} className="w-7 h-7 flex items-center justify-center rounded-full border border-zinc-700 text-zinc-400 hover:text-zinc-100 hover:border-zinc-500 text-xs font-bold transition-colors bg-zinc-800/50">?</button>
           <Link href="/portfolio" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Portfolio</Link>
           <Link href="/shock" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Shock</Link>
-          <span className="text-xs font-semibold text-zinc-100">Explore</span>
           <Link href="/analyze" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Analysis</Link>
+          <span className="text-xs font-semibold text-zinc-100">Explore</span>
         </div>
       </nav>
 

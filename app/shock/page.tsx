@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getAnalyzeState, saveAnalyzeState } from '@/lib/analyzeStore'
@@ -28,17 +28,29 @@ function TremorIcon() {
 
 export default function ShockConfigPage() {
   const router = useRouter()
-  const saved = getAnalyzeState()
-  const [mode, setMode] = useState<'manual' | 'natural'>(saved.mode ?? 'manual')
-  const [company, setCompany] = useState(saved.company)
-  const [shockPct, setShockPct] = useState(saved.shockPct ?? 0)
-  const [prompt, setPrompt] = useState(saved.prompt)
+  // Initialize from static defaults so server and client render the same HTML.
+  // Hydrate from sessionStorage in useEffect after mount.
+  const [mode, setMode] = useState<'manual' | 'natural'>('manual')
+  const [company, setCompany] = useState('')
+  const [shockPct, setShockPct] = useState(0)
+  const [prompt, setPrompt] = useState('')
   const [parsing, setParsing] = useState(false)
   const [parseError, setParseError] = useState<string | null>(null)
-  const [parsedCompany, setParsedCompany] = useState<string | null>(saved.parsedCompany)
-  const [parsedPct, setParsedPct] = useState<number | null>(saved.parsedPct)
-  const [reasoning, setReasoning] = useState<string | null>(saved.reasoning)
+  const [parsedCompany, setParsedCompany] = useState<string | null>(null)
+  const [parsedPct, setParsedPct] = useState<number | null>(null)
+  const [reasoning, setReasoning] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(false)
+
+  useEffect(() => {
+    const saved = getAnalyzeState()
+    setMode(saved.mode ?? 'manual')
+    setCompany(saved.company)
+    setShockPct(saved.shockPct ?? 0)
+    setPrompt(saved.prompt)
+    setParsedCompany(saved.parsedCompany)
+    setParsedPct(saved.parsedPct)
+    setReasoning(saved.reasoning)
+  }, [])
 
   async function handleContinue() {
     if (mode === 'natural') {
@@ -97,8 +109,8 @@ export default function ShockConfigPage() {
           <button onClick={() => setShowHelp(true)} className="w-7 h-7 flex items-center justify-center rounded-full border border-zinc-700 text-zinc-400 hover:text-zinc-100 hover:border-zinc-500 text-xs font-bold transition-colors bg-zinc-800/50">?</button>
           <Link href="/portfolio" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Portfolio</Link>
           <span className="text-xs font-semibold text-zinc-100">Shock</span>
-          <Link href="/explore" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Explore</Link>
           <Link href="/analyze" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Analysis</Link>
+          <Link href="/explore" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Explore</Link>
         </div>
       </nav>
 

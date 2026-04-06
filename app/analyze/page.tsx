@@ -343,27 +343,42 @@ function PortfolioExposurePanel({ exposure }: { exposure: PortfolioExposure }) {
 }
 
 export default function Home() {
-  const [mode, setMode] = useState<'manual' | 'natural'>(() => getAnalyzeState().mode)
-
-  const [company, setCompany] = useState(() => getAnalyzeState().company)
-  const [shockPct, setShockPct] = useState(() => getAnalyzeState().shockPct)
-
-  const [prompt, setPrompt] = useState(() => getAnalyzeState().prompt)
-  const [parsedCompany, setParsedCompany] = useState<string | null>(() => getAnalyzeState().parsedCompany)
-  const [parsedPct, setParsedPct] = useState<number | null>(() => getAnalyzeState().parsedPct)
-  const [reasoning, setReasoning] = useState<string | null>(() => getAnalyzeState().reasoning)
+  // Static defaults — must match server render to avoid hydration mismatch.
+  // Persisted values are loaded from sessionStorage in useEffect after mount.
+  const [mode, setMode] = useState<'manual' | 'natural'>('manual')
+  const [company, setCompany] = useState('')
+  const [shockPct, setShockPct] = useState(0)
+  const [prompt, setPrompt] = useState('')
+  const [parsedCompany, setParsedCompany] = useState<string | null>(null)
+  const [parsedPct, setParsedPct] = useState<number | null>(null)
+  const [reasoning, setReasoning] = useState<string | null>(null)
 
   const [loading, setLoading] = useState(false)
-  const [results, setResults] = useState<Results | null>(() => getAnalyzeState().results)
-  const [narrative, setNarrative] = useState<string | null>(() => getAnalyzeState().narrative)
+  const [results, setResults] = useState<Results | null>(null)
+  const [narrative, setNarrative] = useState<string | null>(null)
   const [narrativeLoading, setNarrativeLoading] = useState(false)
-  const [deepNarrative, setDeepNarrative] = useState<string | null>(() => getAnalyzeState().deepNarrative)
+  const [deepNarrative, setDeepNarrative] = useState<string | null>(null)
   const [deepNarrativeLoading, setDeepNarrativeLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null)
-  const [showCritical, setShowCritical] = useState(false)
+  const [showCritical, setShowCritical] = useState(true)
   const [showHelp, setShowHelp] = useState(false)
   const [portfolioExposure, setPortfolioExposure] = useState<PortfolioExposure | null>(null)
+
+  // Hydrate from sessionStorage after mount (avoids SSR/client mismatch)
+  useEffect(() => {
+    const saved = getAnalyzeState()
+    setMode(saved.mode ?? 'manual')
+    setCompany(saved.company)
+    setShockPct(saved.shockPct ?? 0)
+    setPrompt(saved.prompt)
+    setParsedCompany(saved.parsedCompany)
+    setParsedPct(saved.parsedPct)
+    setReasoning(saved.reasoning)
+    setResults(saved.results)
+    setNarrative(saved.narrative)
+    setDeepNarrative(saved.deepNarrative)
+  }, [])
 
   // On mount: recalculate portfolio exposure if results exist, or auto-run if company is set
   useEffect(() => {
@@ -477,8 +492,8 @@ export default function Home() {
           <button onClick={() => setShowHelp(true)} className="w-7 h-7 flex items-center justify-center rounded-full border border-zinc-700 text-zinc-400 hover:text-zinc-100 hover:border-zinc-500 text-xs font-bold transition-colors bg-zinc-800/50">?</button>
           <Link href="/portfolio" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Portfolio</Link>
           <Link href="/shock" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Shock</Link>
-          <Link href="/explore" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Explore</Link>
           <span className="text-xs font-semibold text-zinc-100">Analysis</span>
+          <Link href="/explore" className="text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-colors">Explore</Link>
         </div>
       </nav>
 
