@@ -33,6 +33,7 @@ export default function ShockConfigPage() {
   const [mode, setMode] = useState<'manual' | 'natural'>('manual')
   const [company, setCompany] = useState('')
   const [shockPct, setShockPct] = useState(0)
+  const [shockInput, setShockInput] = useState('0')
   const [prompt, setPrompt] = useState('')
   const [parsing, setParsing] = useState(false)
   const [parseError, setParseError] = useState<string | null>(null)
@@ -45,7 +46,9 @@ export default function ShockConfigPage() {
     const saved = getAnalyzeState()
     setMode(saved.mode ?? 'manual')
     setCompany(saved.company)
-    setShockPct(saved.shockPct ?? 0)
+    const pct = saved.shockPct ?? 0
+    setShockPct(pct)
+    setShockInput(String(pct))
     setPrompt(saved.prompt)
     setParsedCompany(saved.parsedCompany)
     setParsedPct(saved.parsedPct)
@@ -160,12 +163,35 @@ export default function ShockConfigPage() {
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
-                      Earnings shock —{' '}
-                      <span className={`font-bold normal-case ${shockColor}`}>{shockPct > 0 ? '+' : ''}{shockPct}%</span>
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">Earnings shock</label>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={shockInput}
+                          onChange={e => {
+                            setShockInput(e.target.value)
+                            const n = parseInt(e.target.value, 10)
+                            if (!isNaN(n)) {
+                              setShockPct(Math.min(100, Math.max(-100, n)))
+                            }
+                          }}
+                          onBlur={() => setShockInput(String(shockPct))}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                          }}
+                          className={`w-16 text-center text-sm font-bold bg-zinc-800/80 border border-zinc-700/60 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/30 transition-all ${shockColor}`}
+                        />
+                        <span className={`text-sm font-bold ${shockColor}`}>%</span>
+                      </div>
+                    </div>
                     <input type="range" min={-100} max={100} value={shockPct}
-                      onChange={e => setShockPct(Number(e.target.value))} className="accent-blue-500" />
+                      onChange={e => {
+                        const v = Number(e.target.value)
+                        setShockPct(v)
+                        setShockInput(String(v))
+                      }}
+                      className="accent-blue-500" />
                     <div className="flex justify-between text-xs text-zinc-600">
                       <span>−100%</span><span>0</span><span>+100%</span>
                     </div>
